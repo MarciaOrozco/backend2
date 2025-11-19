@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import { pool } from "./config/db";
 import nutricionistaRoutes from "./routes/nutricionistaRoutes";
 import authRoutes from "./routes/authRoutes";
+import { authenticateJWT, authorizeRole } from "./middlewares/authMiddleware";
+import turnoRoutes from "./routes/turnoRoutes";
 
 dotenv.config();
 const app = express();
@@ -29,12 +31,12 @@ app.use("/api/nutricionistas", nutricionistaRoutes);
 //   authorizeRole("paciente", "nutricionista", "admin"),
 //   pacienteRoutes
 // );
-// app.use(
-//   "/api/turnos",
-//   authenticateJWT,
-//   authorizeRole("paciente", "admin", "nutricionista"),
-//   turnoRoutes
-// );
+app.use(
+  "/api/turnos",
+  authenticateJWT,
+  authorizeRole("paciente", "admin", "nutricionista"),
+  turnoRoutes
+);
 // app.use(
 //   "/api/documentos",
 //   authenticateJWT,
