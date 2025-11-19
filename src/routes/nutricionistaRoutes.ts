@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   getNutricionistas,
-  //   getNutricionistaById,
+  getNutricionistaById,
   //   agregarPacienteManual,
   //   getPacientesVinculados,
   //   getTurnosNutricionista,
@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 router.get("/", getNutricionistas);
-// router.get("/:id", getNutricionistaById);
+router.get("/:id", getNutricionistaById);
 // router.post(
 //   "/:nutricionistaId/pacientes/manual",
 //   authenticateJWT,

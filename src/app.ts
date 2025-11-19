@@ -3,13 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/db";
 import nutricionistaRoutes from "./routes/nutricionistaRoutes";
-// import pacienteRoutes from "./routes/pacienteRoutes";
-// import turnoRoutes from "./routes/turnoRoutes";
-// import documentoRoutes from "./routes/documentoRoutes";
-// import authRoutes from "./routes/authRoutes";
-// import consultaRoutes from "./routes/consultaRoutes";
-// import planRoutes from "./routes/planRoutes";
-import { authenticateJWT, authorizeRole } from "./middlewares/authMiddleware";
+import authRoutes from "./routes/authRoutes";
 
 dotenv.config();
 const app = express();
@@ -27,7 +21,7 @@ app.get("/ping", async (_, res) => {
 });
 
 // Rutas
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/nutricionistas", nutricionistaRoutes);
 // app.use(
 //   "/api/pacientes",

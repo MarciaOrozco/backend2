@@ -13,7 +13,7 @@ if (!JWT_SECRET) {
 export const authenticateJWT = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const authorization = req.headers.authorization;
 
@@ -43,7 +43,7 @@ export const authenticateJWT = async (
     if (decoded.rol === "paciente") {
       const [rows]: any = await pool.query(
         `SELECT paciente_id FROM paciente WHERE usuario_id = ? LIMIT 1`,
-        [decoded.usuarioId],
+        [decoded.usuarioId]
       );
 
       if (!rows.length) {
@@ -54,7 +54,7 @@ export const authenticateJWT = async (
     } else if (decoded.rol === "nutricionista") {
       const [rows]: any = await pool.query(
         `SELECT nutricionista_id FROM nutricionista WHERE usuario_id = ? LIMIT 1`,
-        [decoded.usuarioId],
+        [decoded.usuarioId]
       );
 
       if (!rows.length) {

@@ -99,3 +99,187 @@ export const findNutricionistas = async (
 
   return rows;
 };
+
+// ---------------- BASE ----------------
+
+interface NutricionistaBaseRow extends RowDataPacket {
+  nutricionista_id: number;
+  usuario_id: number;
+  nombre: string | null;
+  apellido: string | null;
+  email: string | null;
+  sobre_mi: string | null;
+  reputacion_promedio: number | null;
+}
+
+export const findNutricionistaBaseById = async (
+  id: number
+): Promise<NutricionistaBaseRow | null> => {
+  const [rows] = await pool.query<NutricionistaBaseRow[]>(
+    `
+      SELECT n.*, u.nombre, u.apellido, u.email
+      FROM nutricionista n
+      JOIN usuario u ON n.usuario_id = u.usuario_id
+      WHERE n.nutricionista_id = ?
+    `,
+    [id]
+  );
+
+  return rows[0] ?? null;
+};
+
+// ---------------- ESPECIALIDADES ----------------
+
+interface EspecialidadRow extends RowDataPacket {
+  nombre: string;
+}
+
+export const findEspecialidadesByNutricionista = async (
+  id: number
+): Promise<string[]> => {
+  const [rows] = await pool.query<EspecialidadRow[]>(
+    `
+      SELECT e.nombre
+      FROM nutricionista_especialidad ne
+      JOIN especialidad e ON ne.especialidad_id = e.especialidad_id
+      WHERE ne.nutricionista_id = ?
+      ORDER BY e.nombre
+    `,
+    [id]
+  );
+
+  return rows.map((r) => r.nombre);
+};
+
+// ---------------- MODALIDADES ----------------
+
+interface ModalidadRow extends RowDataPacket {
+  modalidad_id: number;
+  nombre: string;
+}
+
+export const findModalidadesByNutricionista = async (
+  id: number
+): Promise<ModalidadRow[]> => {
+  const [rows] = await pool.query<ModalidadRow[]>(
+    `
+      SELECT m.modalidad_id, m.nombre
+      FROM nutricionista_modalidad nm
+      JOIN modalidad m ON nm.modalidad_id = m.modalidad_id
+      WHERE nm.nutricionista_id = ?
+      ORDER BY m.nombre
+    `,
+    [id]
+  );
+
+  return rows;
+};
+
+// ---------------- EDUCACIÓN ----------------
+
+interface EducacionRow extends RowDataPacket {
+  educacion_id: number;
+  titulo: string;
+  institucion: string;
+  descripcion: string;
+}
+
+export const findEducacionByNutricionista = async (
+  id: number
+): Promise<EducacionRow[]> => {
+  const [rows] = await pool.query<EducacionRow[]>(
+    `
+      SELECT educacion_id, titulo, institucion, descripcion
+      FROM educacion
+      WHERE nutricionista_id = ?
+      ORDER BY educacion_id DESC
+    `,
+    [id]
+  );
+
+  return rows;
+};
+
+// ---------------- MÉTODOS DE PAGO ----------------
+
+interface MetodoPagoRow extends RowDataPacket {
+  metodo_pago_id: number;
+  nombre: string;
+  descripcion: string | null;
+}
+
+export const findMetodosPagoByNutricionista = async (
+  id: number
+): Promise<MetodoPagoRow[]> => {
+  const [rows] = await pool.query<MetodoPagoRow[]>(
+    `
+      SELECT mp.metodo_pago_id, mp.nombre, mp.descripcion
+      FROM nutricionista_metodo_pago nmp
+      JOIN metodo_pago mp ON nmp.metodo_pago_id = mp.metodo_pago_id
+      WHERE nmp.nutricionista_id = ?
+      ORDER BY mp.nombre
+    `,
+    [id]
+  );
+
+  return rows;
+};
+
+// ---------------- OBRAS SOCIALES ----------------
+
+interface ObraSocialRow extends RowDataPacket {
+  obra_social_id: number;
+  nombre: string;
+}
+
+export const findObrasSocialesByNutricionista = async (
+  id: number
+): Promise<ObraSocialRow[]> => {
+  const [rows] = await pool.query<ObraSocialRow[]>(
+    `
+      SELECT os.obra_social_id, os.nombre
+      FROM nutricionista_obra_social nos
+      JOIN obra_social os ON nos.obra_social_id = os.obra_social_id
+      WHERE nos.nutricionista_id = ?
+      ORDER BY os.nombre
+    `,
+    [id]
+  );
+
+  return rows;
+};
+
+// ---------------- RESEÑAS ----------------
+
+interface ResenaRow extends RowDataPacket {
+  resena_id: number;
+  fecha: string;
+  comentario: string;
+  puntuacion: number;
+  paciente_nombre: string | null;
+  paciente_apellido: string | null;
+}
+
+export const findResenasByNutricionista = async (
+  id: number
+): Promise<ResenaRow[]> => {
+  const [rows] = await pool.query<ResenaRow[]>(
+    `
+      SELECT
+        r.resena_id,
+        r.fecha,
+        r.comentario,
+        r.puntuacion,
+        u.nombre AS paciente_nombre,
+        u.apellido AS paciente_apellido
+      FROM resena r
+      LEFT JOIN paciente p ON r.paciente_id = p.paciente_id
+      LEFT JOIN usuario u ON p.usuario_id = u.usuario_id
+      WHERE r.nutricionista_id = ?
+      ORDER BY r.fecha DESC, r.resena_id DESC
+    `,
+    [id]
+  );
+
+  return rows;
+};
