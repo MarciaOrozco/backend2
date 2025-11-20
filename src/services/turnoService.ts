@@ -2,10 +2,12 @@ import type { CreateTurnoPayload, CreateTurnoResult } from "../types/turno";
 import { DomainError } from "../types/errors";
 import {
   createTurno as createTurnoRepository,
+  existsTurnoActivoEnHorarioExcepto,
   findTurnoById,
   findTurnosByPacienteId,
   insertTurnoLogEvento,
   updateTurnoEstado,
+  updateTurnoFechaHoraYEstado,
 } from "../repositories/turnoRepository";
 import {
   ensureNutricionistaPropietario,
@@ -15,6 +17,8 @@ import { vincularPacienteProfesional } from "./vinculacionService";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { ensurePacientePropietarioByUser } from "../utils/ownershipService";
 import { pool } from "../config/db";
+import { RangoDisponibilidad } from "../types/agenda";
+import { findDisponibilidadByNutricionistaAndDia } from "../repositories/disponibilidadRepository";
 
 interface CreateTurnoContext {
   userRol: string;
@@ -158,4 +162,89 @@ export const cancelarTurnoService = async (
   }`;
 
   await insertTurnoLogEvento(pool, turnoId, mensaje);
+};
+
+interface TurnoActionContext {
+  userId: number;
+  userRol: string;
+}
+
+const horaDentroDeRangos = (
+  hora: string,
+  rangos: RangoDisponibilidad[]
+): boolean => {
+  return rangos.some((r) => {
+    const inicio = String(r.hora_inicio).slice(0, 5); // "HH:MM"
+    const fin = String(r.hora_fin).slice(0, 5);
+    const h = hora.slice(0, 5);
+    return inicio <= h && h <= fin;
+  });
+};
+
+export const reprogramarTurnoService = async (
+  turnoId: number,
+  nuevaFecha: string,
+  nuevaHora: string,
+  context: TurnoActionContext
+): Promise<void> => {
+  if (context.userRol !== "paciente") {
+    throw new DomainError("No autorizado", 403);
+  }
+
+  // 1) Buscar turno
+  const turno = await findTurnoById(pool, turnoId);
+  if (!turno) {
+    throw new DomainError("Turno no encontrado", 404);
+  }
+
+  // 2) Verificar que el usuario sea el paciente dueño
+  await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
+
+  // 3) Validar fecha
+  const targetDate = new Date(nuevaFecha);
+  if (Number.isNaN(targetDate.getTime())) {
+    throw new DomainError("Fecha inválida", 400);
+  }
+
+  // 4) Obtener día de la semana en español (coherente con getTurnosDisponibles)
+  const diaSemana = targetDate
+    .toLocaleDateString("es-ES", { weekday: "long" })
+    .toLowerCase();
+
+  // 5) Verificar disponibilidad del profesional ese día
+  const rangos = await findDisponibilidadByNutricionistaAndDia(
+    pool,
+    turno.nutricionista_id,
+    diaSemana
+  );
+
+  if (!rangos.length || !horaDentroDeRangos(nuevaHora, rangos)) {
+    throw new DomainError(
+      "El profesional no tiene disponibilidad en el horario indicado",
+      400
+    );
+  }
+
+  // 6) Verificar que no haya otro turno activo en ese horario
+  const ocupado = await existsTurnoActivoEnHorarioExcepto(
+    pool,
+    turno.nutricionista_id,
+    nuevaFecha,
+    nuevaHora,
+    turnoId
+  );
+
+  if (ocupado) {
+    throw new DomainError("El horario solicitado ya está reservado", 409);
+  }
+
+  // 7) Actualizar turno
+  await updateTurnoFechaHoraYEstado(pool, turnoId, nuevaFecha, nuevaHora, 2);
+
+  // 8) Log
+  await insertTurnoLogEvento(
+    pool,
+    turnoId,
+    "Turno reprogramado por el paciente"
+  );
 };

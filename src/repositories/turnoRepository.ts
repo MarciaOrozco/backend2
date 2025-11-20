@@ -30,16 +30,13 @@ interface TurnoVinculoRow extends RowDataPacket {
   nutricionista_id: number;
 }
 
-/** Turno “crudo” completo, por si necesitamos todos los campos */
-export interface TurnoRow extends RowDataPacket {
+interface TurnoRow extends RowDataPacket {
   turno_id: number;
   paciente_id: number;
   nutricionista_id: number;
   fecha: Date | string;
   hora: string | null;
   estado_turno_id: number;
-  modalidad_id: number | null;
-  metodo_pago_id: number | null;
 }
 
 /**
@@ -230,5 +227,46 @@ export const insertTurnoLogEvento = async (
       VALUES (?, ?)
     `,
     [turnoId, mensaje]
+  );
+};
+
+export const existsTurnoActivoEnHorarioExcepto = async (
+  client: Pool | PoolConnection = pool,
+  nutricionistaId: number,
+  fecha: string,
+  hora: string,
+  turnoIdExcluir: number
+): Promise<boolean> => {
+  const [rows] = await client.query<RowDataPacket[]>(
+    `
+      SELECT 1
+      FROM turno
+      WHERE nutricionista_id = ?
+        AND fecha = ?
+        AND hora = ?
+        AND turno_id <> ?
+        AND estado_turno_id IN (1, 2)
+      LIMIT 1
+    `,
+    [nutricionistaId, fecha, hora, turnoIdExcluir]
+  );
+
+  return rows.length > 0;
+};
+
+export const updateTurnoFechaHoraYEstado = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number,
+  fecha: string,
+  hora: string,
+  estadoTurnoId: number
+): Promise<void> => {
+  await client.query(
+    `
+      UPDATE turno
+      SET fecha = ?, hora = ?, estado_turno_id = ?
+      WHERE turno_id = ?
+    `,
+    [fecha, hora, estadoTurnoId, turnoId]
   );
 };

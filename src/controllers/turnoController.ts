@@ -5,6 +5,7 @@ import {
   cancelarTurnoService,
   createTurno as createTurnoService,
   obtenerTurnosPaciente,
+  reprogramarTurnoService,
 } from "../services/turnoService";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
 import { handleControllerError } from "../utils/errorsUtils";
@@ -145,5 +146,38 @@ export const cancelarTurno = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return handleControllerError(res, error, "Error al cancelar turno");
+  }
+};
+
+export const reprogramarTurno = async (req: Request, res: Response) => {
+  const turnoId = Number(req.params.id);
+  const { nuevaFecha, nuevaHora } = req.body ?? {};
+
+  if (Number.isNaN(turnoId)) {
+    return res.status(400).json({ error: "Parámetro turnoId inválido" });
+  }
+
+  if (!nuevaFecha || !nuevaHora) {
+    return res
+      .status(400)
+      .json({ error: "Debe indicar la nueva fecha y hora" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    await reprogramarTurnoService(turnoId, nuevaFecha, nuevaHora, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+    });
+
+    return res.json({
+      success: true,
+      message: "Turno reprogramado correctamente",
+    });
+  } catch (error) {
+    return handleControllerError(res, error, "Error al reprogramar turno");
   }
 };
