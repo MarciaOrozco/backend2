@@ -9,6 +9,7 @@ declare global {
         pacienteId?: number | null;
         nutricionistaId?: number | null;
       };
+      files?: Express.Multer.File[];
     }
   }
 }

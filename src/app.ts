@@ -7,6 +7,8 @@ import authRoutes from "./routes/authRoutes";
 import { authenticateJWT, authorizeRole } from "./middlewares/authMiddleware";
 import turnoRoutes from "./routes/turnoRoutes";
 import pacienteRoutes from "./routes/pacienteRoutes";
+import consultaRoutes from "./routes/consultaRoutes";
+import documentoRoutes from "./routes/documentoRoutes";
 
 dotenv.config();
 const app = express();
@@ -38,18 +40,18 @@ app.use(
   authorizeRole("paciente", "admin", "nutricionista"),
   turnoRoutes
 );
-// app.use(
-//   "/api/documentos",
-//   authenticateJWT,
-//   authorizeRole("paciente", "admin"),
-//   documentoRoutes
-// );
-// app.use(
-//   "/api/consultas",
-//   authenticateJWT,
-//   authorizeRole("nutricionista", "admin"),
-//   consultaRoutes
-// );
+app.use(
+  "/api/consultas",
+  authenticateJWT,
+  authorizeRole("nutricionista", "admin"),
+  consultaRoutes
+);
+app.use(
+  "/api/documentos",
+  authenticateJWT,
+  authorizeRole("paciente", "admin"),
+  documentoRoutes
+);
 // app.use(
 //   "/api/planes",
 //   authenticateJWT,
