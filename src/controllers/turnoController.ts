@@ -6,6 +6,8 @@ import {
   createTurno as createTurnoService,
   obtenerTurnosPaciente,
   reprogramarTurnoService,
+  cancelarTurnoNutricionistaService,
+  reprogramarTurnoNutricionistaService,
 } from "../services/turnoService";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
 import { handleControllerError } from "../utils/errorsUtils";
@@ -179,5 +181,87 @@ export const reprogramarTurno = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return handleControllerError(res, error, "Error al reprogramar turno");
+  }
+};
+
+export const cancelarTurnoNutricionista = async (
+  req: Request,
+  res: Response
+) => {
+  const turnoId = Number(req.params.turnoId);
+  const nutricionistaId = Number(req.params.nutricionistaId);
+  const { motivo }: { motivo?: string } = req.body ?? {};
+
+  if (Number.isNaN(turnoId) || Number.isNaN(nutricionistaId)) {
+    return res.status(400).json({ error: "Parámetros inválidos" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    await cancelarTurnoNutricionistaService(turnoId, motivo, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+      userNutricionistaId: req.user.nutricionistaId,
+    });
+
+    return res.json({
+      success: true,
+      message: "Turno cancelado correctamente",
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "No se pudo cancelar el turno del paciente"
+    );
+  }
+};
+
+export const reprogramarTurnoNutricionista = async (
+  req: Request,
+  res: Response
+) => {
+  const turnoId = Number(req.params.turnoId);
+  const nutricionistaId = Number(req.params.nutricionistaId);
+  const { nuevaFecha, nuevaHora } = req.body ?? {};
+
+  if (
+    Number.isNaN(turnoId) ||
+    Number.isNaN(nutricionistaId) ||
+    !nuevaFecha ||
+    !nuevaHora
+  ) {
+    return res.status(400).json({ error: "Datos inválidos para reprogramar" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    await reprogramarTurnoNutricionistaService(
+      turnoId,
+      nuevaFecha,
+      nuevaHora,
+      {
+        userId: req.user.usuarioId,
+        userRol: req.user.rol,
+        userNutricionistaId: req.user.nutricionistaId,
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "Turno reprogramado correctamente",
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "No se pudo reprogramar el turno del paciente"
+    );
   }
 };

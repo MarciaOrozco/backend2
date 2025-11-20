@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
 import type { NutricionistaFilters } from "../types/nutricionista";
+import type { Pool, PoolConnection } from "mysql2/promise";
 
 interface NutricionistaRow extends RowDataPacket {
   nutricionista_id: number;
@@ -279,6 +280,46 @@ export const findResenasByNutricionista = async (
       ORDER BY r.fecha DESC, r.resena_id DESC
     `,
     [id]
+  );
+
+  return rows;
+};
+
+/* --- Pacientes vinculados a un nutricionista --- */
+interface PacienteVinculadoRow extends RowDataPacket {
+  paciente_id: number;
+  nombre: string | null;
+  apellido: string | null;
+  email: string | null;
+  telefono: string | null;
+  estado_registro: string | null;
+  fecha_invitacion: Date | string | null;
+  fecha_expiracion: Date | string | null;
+}
+
+export const findPacientesVinculados = async (
+  client: Pool | PoolConnection = pool,
+  nutricionistaId: number
+): Promise<PacienteVinculadoRow[]> => {
+  const [rows] = await client.query<PacienteVinculadoRow[]>(
+    `
+      SELECT
+        p.paciente_id,
+        u.nombre,
+        u.apellido,
+        u.email,
+        u.telefono,
+        er.nombre AS estado_registro,
+        p.fecha_invitacion,
+        p.fecha_expiracion
+      FROM relacion_paciente_profesional r
+      JOIN paciente p ON r.paciente_id = p.paciente_id
+      JOIN usuario u ON p.usuario_id = u.usuario_id
+      LEFT JOIN estado_registro er ON p.estado_registro_id = er.estado_registro_id
+      WHERE r.nutricionista_id = ?
+      ORDER BY u.nombre, u.apellido
+    `,
+    [nutricionistaId]
   );
 
   return rows;

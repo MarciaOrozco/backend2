@@ -25,6 +25,20 @@ interface TurnoPacienteRow extends RowDataPacket {
   nutricionista_apellido: string;
 }
 
+interface TurnoNutricionistaRow extends RowDataPacket {
+  turno_id: number;
+  fecha: Date | string;
+  hora: string | null;
+  estado_turno_id: number;
+  estado: string;
+  modalidad_id: number | null;
+  modalidad: string | null;
+  paciente_id: number;
+  paciente_nombre: string | null;
+  paciente_apellido: string | null;
+  paciente_email: string | null;
+}
+
 interface TurnoVinculoRow extends RowDataPacket {
   paciente_id: number;
   nutricionista_id: number;
@@ -146,6 +160,40 @@ export const findTurnosByPacienteId = async (
       ORDER BY t.fecha ASC, t.hora ASC
     `,
     [pacienteId]
+  );
+
+  return rows;
+};
+
+/** Turnos activos (1,2) de un nutricionista con datos de paciente */
+export const findTurnosActivosByNutricionista = async (
+  client: Pool | PoolConnection = pool,
+  nutricionistaId: number
+): Promise<TurnoNutricionistaRow[]> => {
+  const [rows] = await client.query<TurnoNutricionistaRow[]>(
+    `
+      SELECT
+        t.turno_id,
+        t.fecha,
+        t.hora,
+        t.estado_turno_id,
+        est.nombre AS estado,
+        t.modalidad_id,
+        m.nombre AS modalidad,
+        p.paciente_id,
+        u.nombre AS paciente_nombre,
+        u.apellido AS paciente_apellido,
+        u.email AS paciente_email
+      FROM turno t
+      JOIN estado_turno est ON t.estado_turno_id = est.estado_turno_id
+      JOIN paciente p ON t.paciente_id = p.paciente_id
+      JOIN usuario u ON p.usuario_id = u.usuario_id
+      LEFT JOIN modalidad m ON t.modalidad_id = m.modalidad_id
+      WHERE t.nutricionista_id = ?
+        AND t.estado_turno_id IN (1, 2)
+      ORDER BY t.fecha ASC, t.hora ASC
+    `,
+    [nutricionistaId]
   );
 
   return rows;

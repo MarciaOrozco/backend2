@@ -94,7 +94,6 @@ export const crearConsulta = async (req: Request, res: Response) => {
 };
 
 export const obtenerConsulta = async (req: Request, res: Response) => {
-  console.log("ENTRE A CONSULTA CONTROLLER");
   const consultaId = Number.parseInt(req.params.consultaId, 10);
 
   if (Number.isNaN(consultaId)) {

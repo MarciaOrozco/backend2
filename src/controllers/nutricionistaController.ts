@@ -1,7 +1,14 @@
 import type { Request, Response } from "express";
-import { getNutricionistas as getNutricionistasService } from "../services/nutricionistaService";
+import {
+  getNutricionistas as getNutricionistasService,
+  getNutricionistaById as getNutricionistaByIdService,
+  getPacientesVinculados as getPacientesVinculadosService,
+  getTurnosNutricionista as getTurnosNutricionistaService,
+  getPacientePerfilParaNutricionista as getPacientePerfilParaNutricionistaService,
+  agregarPacienteManual as agregarPacienteManualService,
+} from "../services/nutricionistaService";
 import type { NutricionistaFilters } from "../types/nutricionista";
-import { getNutricionistaById as getNutricionistaByIdService } from "../services/nutricionistaService";
+import { handleControllerError } from "../utils/errorsUtils";
 
 export const getNutricionistas = async (req: Request, res: Response) => {
   try {
@@ -32,6 +39,139 @@ export const getNutricionistas = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error al obtener nutricionistas:", error);
     return res.status(500).json({ error: "Error al obtener nutricionistas" });
+  }
+};
+
+export const getPacientesVinculados = async (req: Request, res: Response) => {
+  const nutricionistaId = Number(req.params.nutricionistaId);
+
+  if (Number.isNaN(nutricionistaId)) {
+    return res.status(400).json({ error: "nutricionistaId inválido" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    const pacientes = await getPacientesVinculadosService(nutricionistaId, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+      userNutricionistaId: req.user.nutricionistaId,
+    });
+
+    return res.json({ pacientes });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Error al obtener pacientes vinculados"
+    );
+  }
+};
+
+export const getTurnosNutricionista = async (req: Request, res: Response) => {
+  const nutricionistaId = Number(req.params.nutricionistaId);
+
+  if (Number.isNaN(nutricionistaId)) {
+    return res.status(400).json({ error: "nutricionistaId inválido" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    const turnos = await getTurnosNutricionistaService(nutricionistaId, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+      userNutricionistaId: req.user.nutricionistaId,
+    });
+
+    return res.json({ turnos });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Error al obtener turnos del nutricionista"
+    );
+  }
+};
+
+export const getPacientePerfilParaNutricionista = async (
+  req: Request,
+  res: Response
+) => {
+  const nutricionistaId = Number(req.params.nutricionistaId);
+  const pacienteId = Number(req.params.pacienteId);
+
+  if (Number.isNaN(nutricionistaId) || Number.isNaN(pacienteId)) {
+    return res
+      .status(400)
+      .json({ error: "nutricionistaId y pacienteId deben ser numéricos" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    const perfil = await getPacientePerfilParaNutricionistaService(
+      nutricionistaId,
+      pacienteId,
+      {
+        userId: req.user.usuarioId,
+        userRol: req.user.rol,
+        userNutricionistaId: req.user.nutricionistaId,
+      }
+    );
+
+    return res.json({ contacto: perfil });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "Error al obtener el perfil del paciente"
+    );
+  }
+};
+
+export const agregarPacienteManual = async (req: Request, res: Response) => {
+  const nutricionistaId = Number(req.params.nutricionistaId);
+  const { nombre, apellido, email } = req.body ?? {};
+
+  if (Number.isNaN(nutricionistaId)) {
+    return res.status(400).json({ error: "nutricionistaId inválido" });
+  }
+
+  if (!nombre || !apellido || !email) {
+    return res
+      .status(400)
+      .json({ error: "Nombre, apellido y email son obligatorios" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    const result = await agregarPacienteManualService(
+      nutricionistaId,
+      { nombre, apellido, email },
+      {
+        userId: req.user.usuarioId,
+        userRol: req.user.rol,
+        userNutricionistaId: req.user.nutricionistaId,
+      }
+    );
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "No se pudo completar el registro del paciente"
+    );
   }
 };
 
