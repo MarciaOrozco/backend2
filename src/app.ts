@@ -6,6 +6,7 @@ import nutricionistaRoutes from "./routes/nutricionistaRoutes";
 import authRoutes from "./routes/authRoutes";
 import { authenticateJWT, authorizeRole } from "./middlewares/authMiddleware";
 import turnoRoutes from "./routes/turnoRoutes";
+import pacienteRoutes from "./routes/pacienteRoutes";
 
 dotenv.config();
 const app = express();
@@ -25,12 +26,12 @@ app.get("/ping", async (_, res) => {
 // Rutas
 app.use("/api/auth", authRoutes);
 app.use("/api/nutricionistas", nutricionistaRoutes);
-// app.use(
-//   "/api/pacientes",
-//   authenticateJWT,
-//   authorizeRole("paciente", "nutricionista", "admin"),
-//   pacienteRoutes
-// );
+app.use(
+  "/api/pacientes",
+  authenticateJWT,
+  authorizeRole("paciente", "nutricionista", "admin"),
+  pacienteRoutes
+);
 app.use(
   "/api/turnos",
   authenticateJWT,

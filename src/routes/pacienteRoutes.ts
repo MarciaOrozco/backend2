@@ -1,24 +1,18 @@
-// import { Router } from "express";
-// import { crearVinculacion } from "../controllers/vinculacionController";
-// import {
-//   obtenerPerfilPaciente,
-//   obtenerDocumentosPaciente,
-//   obtenerPlanesPaciente,
-// } from "../controllers/pacienteController";
-// import { getTurnosPaciente } from "../controllers/turnoController";
-// import {
-//   listarConsultasPaciente,
-//   obtenerEvolucionPaciente,
-// } from "../controllers/consultaController";
-// import { authorizeRole } from "../middleware/authMiddleware";
+import { Router } from "express";
+import { crearVinculacion } from "../controllers/vinculacionController";
+import {
+  obtenerDocumentosPaciente,
+  obtenerPerfilPaciente,
+  obtenerPlanesPaciente,
+} from "../controllers/pacienteController";
 
-// const router = Router();
+const router = Router();
 
-// router.post("/vinculaciones", crearVinculacion);
-// router.get("/:pacienteId/perfil", obtenerPerfilPaciente);
+router.post("/vinculaciones", crearVinculacion);
+router.get("/:pacienteId/perfil", obtenerPerfilPaciente);
 // router.get("/:pacienteId/turnos", getTurnosPaciente);
-// router.get("/:pacienteId/documentos", obtenerDocumentosPaciente);
-// router.get("/:pacienteId/planes", obtenerPlanesPaciente);
+router.get("/:pacienteId/documentos", obtenerDocumentosPaciente);
+router.get("/:pacienteId/planes", obtenerPlanesPaciente);
 // router.get(
 //   "/:pacienteId/consultas",
 //   authorizeRole("nutricionista", "admin", "paciente"),
@@ -26,4 +20,4 @@
 // );
 // router.get("/:pacienteId/evolucion", obtenerEvolucionPaciente);
 
-// export default router;
+export default router;
