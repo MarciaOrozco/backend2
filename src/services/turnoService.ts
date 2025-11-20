@@ -1,6 +1,9 @@
 import type { CreateTurnoPayload, CreateTurnoResult } from "../types/turno";
 import { DomainError } from "../types/errors";
-import { createTurno as createTurnoRepository } from "../repositories/turnoRepository";
+import {
+  createTurno as createTurnoRepository,
+  findTurnosByPacienteId,
+} from "../repositories/turnoRepository";
 import {
   assertVinculoActivo,
   ensureNutricionistaPropietario,
@@ -57,4 +60,54 @@ export const createTurno = async (
   await vincularPacienteProfesional(turnoId);
 
   return { turnoId };
+};
+
+const formatDate = (value: any) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+  return String(value);
+};
+
+const mapTurnoPaciente = (row: any) => ({
+  id: row.turno_id,
+  fecha: formatDate(row.fecha),
+  hora: row.hora ? row.hora.toString().slice(0, 5) : null,
+  estado: row.estado,
+  estadoId: row.estado_turno_id,
+  modalidadId: row.modalidad_id,
+  modalidad: row.modalidad,
+  nutricionista: {
+    id: row.nutricionista_id,
+    nombre: row.nutricionista_nombre,
+    apellido: row.nutricionista_apellido,
+  },
+});
+
+export const obtenerTurnosPaciente = async (pacienteId: number) => {
+  const rows = await findTurnosByPacienteId(undefined, pacienteId);
+
+  const now = new Date();
+  let proximoTurno: any = null;
+  const historial: any[] = [];
+
+  rows.forEach((row: any) => {
+    const turno = mapTurnoPaciente(row);
+
+    const turnoDate = new Date(`${turno.fecha}T${turno.hora ?? "00:00"}`);
+    const esActivo = [1, 2].includes(Number(turno.estadoId ?? 0));
+    const esFuturo = turnoDate.getTime() >= now.getTime();
+
+    if (!proximoTurno && esActivo && esFuturo) {
+      proximoTurno = turno;
+    } else {
+      historial.push(turno);
+    }
+  });
+
+  return { proximoTurno, historial };
 };

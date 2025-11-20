@@ -12,6 +12,24 @@ interface TurnoExistenteRow extends RowDataPacket {
   hora: string;
 }
 
+interface TurnoPacienteRow extends RowDataPacket {
+  turno_id: number;
+  fecha: Date | string;
+  hora: string | null;
+  estado_turno_id: number;
+  estado: string;
+  modalidad_id: number | null;
+  modalidad: string | null;
+  nutricionista_id: number;
+  nutricionista_nombre: string;
+  nutricionista_apellido: string;
+}
+
+interface TurnoVinculoRow extends RowDataPacket {
+  paciente_id: number;
+  nutricionista_id: number;
+}
+
 export const findTurnosActivosByNutricionistaAndFecha = async (
   client: Pool | PoolConnection = pool,
   nutricionistaId: number,
@@ -62,11 +80,6 @@ export const createTurno = async (
   return Number(result.insertId);
 };
 
-interface TurnoVinculoRow extends RowDataPacket {
-  paciente_id: number;
-  nutricionista_id: number;
-}
-
 export const findPacienteYNutricionistaByTurnoId = async (
   turnoId: number
 ): Promise<{ pacienteId: number; nutricionistaId: number } | null> => {
@@ -85,4 +98,35 @@ export const findPacienteYNutricionistaByTurnoId = async (
     pacienteId: Number(rows[0].paciente_id),
     nutricionistaId: Number(rows[0].nutricionista_id),
   };
+};
+
+export const findTurnosByPacienteId = async (
+  client: Pool | PoolConnection = pool,
+  pacienteId: number
+): Promise<TurnoPacienteRow[]> => {
+  const [rows] = await client.query<TurnoPacienteRow[]>(
+    `
+      SELECT
+        t.turno_id,
+        t.fecha,
+        t.hora,
+        t.estado_turno_id,
+        est.nombre AS estado,
+        t.modalidad_id,
+        m.nombre AS modalidad,
+        n.nutricionista_id,
+        u.nombre AS nutricionista_nombre,
+        u.apellido AS nutricionista_apellido
+      FROM turno t
+      JOIN estado_turno est ON t.estado_turno_id = est.estado_turno_id
+      JOIN nutricionista n ON t.nutricionista_id = n.nutricionista_id
+      JOIN usuario u ON n.usuario_id = u.usuario_id
+      LEFT JOIN modalidad m ON t.modalidad_id = m.modalidad_id
+      WHERE t.paciente_id = ?
+      ORDER BY t.fecha ASC, t.hora ASC
+    `,
+    [pacienteId]
+  );
+
+  return rows;
 };

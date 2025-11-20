@@ -1,7 +1,11 @@
 import type { Request, Response } from "express";
 import { getTurnosDisponibles as getTurnosDisponiblesService } from "../services/agendaService";
 import { DomainError } from "../types/errors";
-import { createTurno as createTurnoService } from "../services/turnoService";
+import {
+  createTurno as createTurnoService,
+  obtenerTurnosPaciente,
+} from "../services/turnoService";
+import { verificarAccesoPaciente } from "../utils/vinculoUtils";
 
 const handleControllerError = (
   res: Response,
@@ -112,5 +116,30 @@ export const createTurno = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return handleControllerError(res, error, "Error al crear turno");
+  }
+};
+
+export const getTurnosPaciente = async (req: Request, res: Response) => {
+  const pacienteId = Number(req.params.pacienteId ?? req.params.id);
+
+  if (Number.isNaN(pacienteId)) {
+    return res.status(400).json({ error: "pacienteId inválido" });
+  }
+
+  try {
+    await verificarAccesoPaciente(req, pacienteId);
+
+    const result = await obtenerTurnosPaciente(pacienteId);
+
+    return res.json(result);
+  } catch (error) {
+    if (error instanceof DomainError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+
+    console.error("Error al obtener turnos del paciente:", error);
+    return res.status(500).json({
+      error: "Error al obtener turnos del paciente",
+    });
   }
 };
