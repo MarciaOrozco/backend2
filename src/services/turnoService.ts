@@ -2,7 +2,10 @@ import type { CreateTurnoPayload, CreateTurnoResult } from "../types/turno";
 import { DomainError } from "../types/errors";
 import {
   createTurno as createTurnoRepository,
+  findTurnoById,
   findTurnosByPacienteId,
+  insertTurnoLogEvento,
+  updateTurnoEstado,
 } from "../repositories/turnoRepository";
 import {
   ensureNutricionistaPropietario,
@@ -10,6 +13,8 @@ import {
 } from "../utils/vinculoUtils";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
+import { ensurePacientePropietarioByUser } from "../utils/ownershipService";
+import { pool } from "../config/db";
 
 interface CreateTurnoContext {
   userRol: string;
@@ -110,4 +115,47 @@ export const obtenerTurnosPaciente = async (pacienteId: number) => {
   });
 
   return { proximoTurno, historial };
+};
+
+interface TurnoActionContext {
+  userId: number;
+  userRol: string;
+}
+
+/**
+ * Cancelación de turno por paciente.
+ * - Verifica que el turno exista
+ * - Verifica que el usuario sea el paciente dueño
+ * - Marca el turno como cancelado (estado 3)
+ * - Inserta un log de evento
+ */
+export const cancelarTurnoService = async (
+  turnoId: number,
+  motivo: string | undefined,
+  context: TurnoActionContext
+): Promise<void> => {
+  if (context.userRol !== "paciente") {
+    throw new DomainError("No autorizado", 403);
+  }
+
+  const turno = await findTurnoById(pool, turnoId);
+  if (!turno) {
+    throw new DomainError("Turno no encontrado", 404);
+  }
+
+  // Verifica que el paciente del token sea el mismo del turno
+  await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
+
+  // Si ya está cancelado, podrías devolver ok o lanzar error; acá lo dejamos idempotente
+  if (turno.estado_turno_id === 3) {
+    return;
+  }
+
+  await updateTurnoEstado(pool, turnoId, 3);
+
+  const mensaje = `Turno cancelado por el paciente. Motivo: ${
+    motivo ?? "No indicado"
+  }`;
+
+  await insertTurnoLogEvento(pool, turnoId, mensaje);
 };

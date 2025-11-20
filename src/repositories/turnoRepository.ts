@@ -30,6 +30,22 @@ interface TurnoVinculoRow extends RowDataPacket {
   nutricionista_id: number;
 }
 
+/** Turno “crudo” completo, por si necesitamos todos los campos */
+export interface TurnoRow extends RowDataPacket {
+  turno_id: number;
+  paciente_id: number;
+  nutricionista_id: number;
+  fecha: Date | string;
+  hora: string | null;
+  estado_turno_id: number;
+  modalidad_id: number | null;
+  metodo_pago_id: number | null;
+}
+
+/**
+ * Turnos activos (estado 1 ó 2) de un nutricionista en una fecha dada.
+ * Usado para generación de slots.
+ */
 export const findTurnosActivosByNutricionistaAndFecha = async (
   client: Pool | PoolConnection = pool,
   nutricionistaId: number,
@@ -49,6 +65,11 @@ export const findTurnosActivosByNutricionistaAndFecha = async (
   return rows;
 };
 
+/**
+ * Crear un turno nuevo.
+ * Nota: el estado inicial lo fijamos a 1 (por ejemplo “pendiente”),
+ * pero si querés que arranque como confirmado podés cambiarlo a 2.
+ */
 export const createTurno = async (
   client: Pool | PoolConnection = pool,
   payload: CreateTurnoPayload
@@ -73,13 +94,14 @@ export const createTurno = async (
       payload.nutricionistaId,
       payload.modalidadId ?? null,
       payload.metodoPagoId ?? null,
-      1,
+      1, // o 2 si tu lógica de negocio lo requiere
     ]
   );
 
   return Number(result.insertId);
 };
 
+/** Obtener paciente y nutricionista a partir de un turno */
 export const findPacienteYNutricionistaByTurnoId = async (
   turnoId: number
 ): Promise<{ pacienteId: number; nutricionistaId: number } | null> => {
@@ -100,6 +122,7 @@ export const findPacienteYNutricionistaByTurnoId = async (
   };
 };
 
+/** Listar turnos de un paciente con info del nutricionista */
 export const findTurnosByPacienteId = async (
   client: Pool | PoolConnection = pool,
   pacienteId: number
@@ -129,4 +152,83 @@ export const findTurnosByPacienteId = async (
   );
 
   return rows;
+};
+
+/* ──────────────────────────────────────────────
+ * MÉTODOS NUEVOS PARA CANCELAR / REPROGRAMAR
+ * ────────────────────────────────────────────── */
+
+/** Obtener un turno completo por id */
+export const findTurnoById = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number
+): Promise<TurnoRow | null> => {
+  const [rows] = await client.query<TurnoRow[]>(
+    `
+      SELECT
+        turno_id,
+        paciente_id,
+        nutricionista_id,
+        fecha,
+        hora,
+        estado_turno_id,
+        modalidad_id,
+        metodo_pago_id
+      FROM turno
+      WHERE turno_id = ?
+      LIMIT 1
+    `,
+    [turnoId]
+  );
+
+  return rows.length ? rows[0] : null;
+};
+
+/** Actualizar solo el estado del turno (por ejemplo, cancelar = 3) */
+export const updateTurnoEstado = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number,
+  nuevoEstadoId: number
+): Promise<void> => {
+  await client.query(
+    `
+      UPDATE turno
+      SET estado_turno_id = ?
+      WHERE turno_id = ?
+    `,
+    [nuevoEstadoId, turnoId]
+  );
+};
+
+/** Reprogramar fecha y hora y dejar el turno como activo/confirmado */
+export const updateTurnoFechaYHora = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number,
+  nuevaFecha: string,
+  nuevaHora: string,
+  nuevoEstadoId: number = 2
+): Promise<void> => {
+  await client.query(
+    `
+      UPDATE turno
+      SET fecha = ?, hora = ?, estado_turno_id = ?
+      WHERE turno_id = ?
+    `,
+    [nuevaFecha, nuevaHora, nuevoEstadoId, turnoId]
+  );
+};
+
+/** Registrar mensajes en log_eventos */
+export const insertTurnoLogEvento = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number,
+  mensaje: string
+): Promise<void> => {
+  await client.query(
+    `
+      INSERT INTO log_eventos (turno_id, mensaje)
+      VALUES (?, ?)
+    `,
+    [turnoId, mensaje]
+  );
 };

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { getTurnosDisponibles as getTurnosDisponiblesService } from "../services/agendaService";
 import { DomainError } from "../types/errors";
 import {
+  cancelarTurnoService,
   createTurno as createTurnoService,
   obtenerTurnosPaciente,
 } from "../services/turnoService";
@@ -117,5 +118,32 @@ export const getTurnosPaciente = async (req: Request, res: Response) => {
     return res.status(500).json({
       error: "Error al obtener turnos del paciente",
     });
+  }
+};
+
+export const cancelarTurno = async (req: Request, res: Response) => {
+  const turnoId = Number(req.params.id);
+  const { motivo }: { motivo?: string } = req.body ?? {};
+
+  if (Number.isNaN(turnoId)) {
+    return res.status(400).json({ error: "Parámetro turnoId inválido" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  try {
+    await cancelarTurnoService(turnoId, motivo, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+    });
+
+    return res.json({
+      success: true,
+      message: "Turno cancelado correctamente",
+    });
+  } catch (error) {
+    return handleControllerError(res, error, "Error al cancelar turno");
   }
 };

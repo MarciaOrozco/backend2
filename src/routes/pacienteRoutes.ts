@@ -7,7 +7,10 @@ import {
 } from "../controllers/pacienteController";
 import { getTurnosPaciente } from "../controllers/turnoController";
 import { authorizeRole } from "../middlewares/authMiddleware";
-import { listarConsultasPaciente } from "../controllers/consultaController";
+import {
+  listarConsultasPaciente,
+  obtenerEvolucionPaciente,
+} from "../controllers/consultaController";
 
 const router = Router();
 
@@ -21,6 +24,6 @@ router.get(
   authorizeRole("nutricionista", "admin", "paciente"),
   listarConsultasPaciente
 );
-// router.get("/:pacienteId/evolucion", obtenerEvolucionPaciente);
+router.get("/:pacienteId/evolucion", obtenerEvolucionPaciente);
 
 export default router;

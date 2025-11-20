@@ -56,3 +56,24 @@ export const parseDateQuery = (
     dayName: getDayName(date),
   };
 };
+
+export const toDateISO = (value: any): string | null => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+    return value.slice(0, 10);
+  }
+  try {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  } catch {}
+  return null;
+};
