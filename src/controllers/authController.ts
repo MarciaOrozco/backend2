@@ -4,23 +4,9 @@ import {
   loginUsuario,
   obtenerSesion,
 } from "../services/authService";
-import { DomainError } from "../types/errors";
-
-const handleControllerError = (
-  res: Response,
-  error: unknown,
-  fallbackMessage: string
-) => {
-  if (error instanceof DomainError) {
-    return res.status(error.statusCode).json({ error: error.message });
-  }
-
-  console.error(fallbackMessage, error);
-  return res.status(500).json({ error: fallbackMessage });
-};
+import { handleControllerError } from "../utils/errorsUtils";
 
 export const register = async (req: Request, res: Response) => {
-  console.log("Registro de usuario iniciado con datos:", req.body);
   try {
     const result = await registerPaciente(req.body ?? {});
     return res.status(201).json(result);

@@ -5,11 +5,11 @@ import {
   findTurnosByPacienteId,
 } from "../repositories/turnoRepository";
 import {
-  assertVinculoActivo,
   ensureNutricionistaPropietario,
   ensurePacientePropietario,
 } from "../utils/vinculoUtils";
 import { vincularPacienteProfesional } from "./vinculacionService";
+import { assertVinculoActivo } from "../repositories/vinculoRepository";
 
 interface CreateTurnoContext {
   userRol: string;

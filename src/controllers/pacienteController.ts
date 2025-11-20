@@ -4,38 +4,9 @@ import {
   listarPlanesPaciente,
   obtenerContactoPaciente,
 } from "../services/pacienteService";
-import { DomainError } from "../types/errors";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
-
-const parsePacienteId = (req: Request): number | null => {
-  const raw = req.params.pacienteId ?? req.params.id;
-  if (!raw) {
-    return null;
-  }
-
-  const parsed = Number(raw);
-  return Number.isNaN(parsed) ? null : parsed;
-};
-
-const handleControllerError = (
-  res: Response,
-  error: unknown,
-  fallbackMessage: string
-) => {
-  if (error instanceof DomainError) {
-    return res.status(error.statusCode).json({ error: error.message });
-  }
-
-  if (error && typeof error === "object" && "status" in error) {
-    const status = Number((error as any).status) || 500;
-    const message =
-      (error as any).message ?? (error as any).error ?? fallbackMessage;
-    return res.status(status).json({ error: message });
-  }
-
-  console.error(fallbackMessage, error);
-  return res.status(500).json({ error: fallbackMessage });
-};
+import { parsePacienteId } from "../utils/stringUtils";
+import { handleControllerError } from "../utils/errorsUtils";
 
 export const obtenerPerfilPaciente = async (req: Request, res: Response) => {
   const pacienteId = parsePacienteId(req);
@@ -67,7 +38,6 @@ export const obtenerDocumentosPaciente = async (
   }
 
   try {
-    // 🔐 Permite acceso a paciente dueño o nutricionista vinculado
     await verificarAccesoPaciente(req, pacienteId);
 
     const documentos = await listarDocumentosPaciente(pacienteId);

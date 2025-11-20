@@ -1,3 +1,5 @@
+import type { Request } from "express";
+
 export const normalizeEmail = (email?: string | null): string | null => {
   if (!email) {
     return null;
@@ -14,4 +16,14 @@ export const normalizeText = (value?: string | null): string | null => {
 
   const normalized = value.trim();
   return normalized.length ? normalized : null;
+};
+
+export const parsePacienteId = (req: Request): number | null => {
+  const raw = req.params.pacienteId ?? req.params.id;
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+  return Number.isNaN(parsed) ? null : parsed;
 };

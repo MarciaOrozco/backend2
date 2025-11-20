@@ -1,8 +1,8 @@
 import { DomainError } from "../types/errors";
-import { obtenerPacienteIdPorUsuario } from "../utils/pacienteUtils";
 import {
   existsRelacionPacienteProfesional,
   insertRelacionPacienteProfesional,
+  obtenerPacienteIdPorUsuario,
 } from "../repositories/vinculoRepository";
 import { findPacienteYNutricionistaByTurnoId } from "../repositories/turnoRepository";
 

@@ -33,7 +33,7 @@ export const getTurnosDisponibles = async (
   );
 
   const estrategiaKey =
-    estrategia ?? (intervalo ? `${intervalo}min` : undefined); // mismo criterio que antes
+    estrategia ?? (intervalo ? `${intervalo}min` : undefined);
 
   const generador = new GeneradorDeHorarios(crearEstrategia(estrategiaKey));
 

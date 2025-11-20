@@ -1,19 +1,6 @@
 import type { Request, Response } from "express";
 import { crearVinculacionManual } from "../services/vinculacionService";
-import { DomainError } from "../types/errors";
-
-const handleControllerError = (
-  res: Response,
-  error: unknown,
-  fallbackMessage: string
-) => {
-  if (error instanceof DomainError) {
-    return res.status(error.statusCode).json({ error: error.message });
-  }
-
-  console.error(fallbackMessage, error);
-  return res.status(500).json({ error: fallbackMessage });
-};
+import { handleControllerError } from "../utils/errorsUtils";
 
 export const crearVinculacion = async (req: Request, res: Response) => {
   const { pacienteId, nutricionistaId } = req.body ?? {};

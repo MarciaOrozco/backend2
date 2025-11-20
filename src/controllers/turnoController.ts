@@ -6,19 +6,8 @@ import {
   obtenerTurnosPaciente,
 } from "../services/turnoService";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
-
-const handleControllerError = (
-  res: Response,
-  error: unknown,
-  fallbackMessage: string
-) => {
-  if (error instanceof DomainError) {
-    return res.status(error.statusCode).json({ error: error.message });
-  }
-
-  console.error(fallbackMessage, error);
-  return res.status(500).json({ error: fallbackMessage });
-};
+import { handleControllerError } from "../utils/errorsUtils";
+import { parseDateQuery } from "../utils/dateUtils";
 
 export const getTurnosDisponibles = async (req: Request, res: Response) => {
   const { nutricionistaId } = req.params;
@@ -29,31 +18,18 @@ export const getTurnosDisponibles = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "nutricionistaId inválido" });
   }
 
-  if (!fecha || typeof fecha !== "string") {
+  const parsedDate = parseDateQuery(fecha);
+  if (!parsedDate) {
     return res
       .status(400)
       .json({ error: "Debe enviar la fecha en formato YYYY-MM-DD" });
   }
 
-  const parts = fecha.split("-").map((value) => Number.parseInt(value, 10));
-  if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
-    return res.status(400).json({ error: "Fecha inválida" });
-  }
-
-  const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
-  if (Number.isNaN(targetDate.getTime())) {
-    return res.status(400).json({ error: "Fecha inválida" });
-  }
-
-  const dayName = targetDate
-    .toLocaleDateString("es-ES", { weekday: "long" })
-    .toLowerCase();
-
   try {
     const result = await getTurnosDisponiblesService({
       nutricionistaId: nutricionistaIdNum,
-      fecha,
-      dayName,
+      fecha: fecha as string,
+      dayName: parsedDate.dayName,
       estrategia: typeof estrategia === "string" ? estrategia : undefined,
       intervalo: typeof intervalo === "string" ? intervalo : undefined,
     });

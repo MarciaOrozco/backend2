@@ -1,38 +1,11 @@
 import { pool } from "../config/db";
-import { DomainError } from "../types/errors";
 import {
+  assertVinculoActivo,
   obtenerNutricionistaIdPorUsuario,
   obtenerPacienteIdPorUsuario,
-} from "./pacienteUtils";
-
-export class ForbiddenError extends Error {
-  status = 403;
-
-  constructor(message = "No autorizado para operar con este paciente") {
-    super(message);
-  }
-}
-
-/**
- * Verifica que exista una relación activa entre paciente y nutricionista.
- * Lanza ForbiddenError si no hay vínculo.
- */
-export const assertVinculoActivo = async (
-  pacienteId: number,
-  nutricionistaId: number
-) => {
-  const [rows]: any = await pool.query(
-    `SELECT 1
-     FROM relacion_paciente_profesional
-     WHERE paciente_id = ? AND nutricionista_id = ?
-     LIMIT 1`,
-    [pacienteId, nutricionistaId]
-  );
-
-  if (!rows.length) {
-    throw new ForbiddenError();
-  }
-};
+} from "../repositories/vinculoRepository";
+import { DomainError } from "../types/errors";
+import { ForbiddenError } from "./errorsUtils";
 
 /**
  * Permite el acceso al perfil de un paciente a:
@@ -110,3 +83,4 @@ export const ensureNutricionistaPropietario = async (
 
   return asociado;
 };
+export { ForbiddenError };

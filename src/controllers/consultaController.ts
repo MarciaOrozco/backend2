@@ -2,16 +2,16 @@ import type { Request, Response } from "express";
 import { listarConsultasPaciente as listarConsultasPacienteService } from "../services/consultaService";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
 import { DomainError } from "../types/errors";
+import { parsePacienteId } from "../utils/stringUtils";
 
 export const listarConsultasPaciente = async (req: Request, res: Response) => {
-  const pacienteId = Number.parseInt(req.params.pacienteId, 10);
+  const pacienteId = parsePacienteId(req);
 
-  if (Number.isNaN(pacienteId)) {
-    return res.status(422).json({ error: "pacienteId inválido" });
+  if (!pacienteId) {
+    return res.status(400).json({ error: "pacienteId inválido" });
   }
 
   try {
-    // mismo chequeo de acceso que antes: paciente dueño o nutricionista/admin vinculado
     await verificarAccesoPaciente(req, pacienteId);
 
     const rolUsuario = req.user?.rol ?? "anon";

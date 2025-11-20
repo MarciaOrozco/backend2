@@ -1,5 +1,6 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
+import { ForbiddenError } from "../utils/vinculoUtils";
 
 interface RelacionPacienteProfesionalRow extends RowDataPacket {
   paciente_id: number;
@@ -36,4 +37,51 @@ export const insertRelacionPacienteProfesional = async (
     `,
     [pacienteId, nutricionistaId]
   );
+};
+
+/**
+ * Verifica que exista una relación activa entre paciente y nutricionista.
+ * Lanza ForbiddenError si no hay vínculo.
+ */
+export const assertVinculoActivo = async (
+  pacienteId: number,
+  nutricionistaId: number
+) => {
+  const [rows]: any = await pool.query(
+    `SELECT 1
+     FROM relacion_paciente_profesional
+     WHERE paciente_id = ? AND nutricionista_id = ?
+     LIMIT 1`,
+    [pacienteId, nutricionistaId]
+  );
+
+  if (!rows.length) {
+    throw new ForbiddenError();
+  }
+};
+
+export const obtenerPacienteIdPorUsuario = async (usuarioId: number) => {
+  const [rows]: any = await pool.query(
+    `SELECT paciente_id FROM paciente WHERE usuario_id = ? LIMIT 1`,
+    [usuarioId]
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return Number(rows[0].paciente_id);
+};
+
+export const obtenerNutricionistaIdPorUsuario = async (usuarioId: number) => {
+  const [rows]: any = await pool.query(
+    `SELECT nutricionista_id FROM nutricionista WHERE usuario_id = ? LIMIT 1`,
+    [usuarioId]
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return Number(rows[0].nutricionista_id);
 };
