@@ -9,6 +9,7 @@ import turnoRoutes from "./routes/turnoRoutes";
 import pacienteRoutes from "./routes/pacienteRoutes";
 import consultaRoutes from "./routes/consultaRoutes";
 import documentoRoutes from "./routes/documentoRoutes";
+import planRoutes from "./routes/planRoutes";
 
 dotenv.config();
 const app = express();
@@ -52,12 +53,12 @@ app.use(
   authorizeRole("paciente", "admin"),
   documentoRoutes
 );
-// app.use(
-//   "/api/planes",
-//   authenticateJWT,
-//   authorizeRole("nutricionista", "paciente", "admin"),
-//   planRoutes
-// );
+app.use(
+  "/api/planes",
+  authenticateJWT,
+  authorizeRole("nutricionista", "paciente", "admin"),
+  planRoutes
+);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
