@@ -9,6 +9,8 @@ export interface CreateTurnoPayload {
 
 export interface CreateTurnoResult {
   turnoId: number;
+  calendarLink?: string | null;
+  icsContent?: string | null;
 }
 
 export interface TurnoParticipante {

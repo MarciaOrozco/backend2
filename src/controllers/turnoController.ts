@@ -93,6 +93,8 @@ export const createTurno = async (req: Request, res: Response) => {
     return res.status(201).json({
       message: "Turno creado con éxito",
       turno_id: result.turnoId,
+      calendarLink: result.calendarLink ?? null,
+      icsContent: result.icsContent ?? null,
     });
   } catch (error) {
     return handleControllerError(res, error, "Error al crear turno");
@@ -170,14 +172,21 @@ export const reprogramarTurno = async (req: Request, res: Response) => {
   }
 
   try {
-    await reprogramarTurnoService(turnoId, nuevaFecha, nuevaHora, {
-      userId: req.user.usuarioId,
-      userRol: req.user.rol,
-    });
+    const result = await reprogramarTurnoService(
+      turnoId,
+      nuevaFecha,
+      nuevaHora,
+      {
+        userId: req.user.usuarioId,
+        userRol: req.user.rol,
+      }
+    );
 
     return res.json({
       success: true,
       message: "Turno reprogramado correctamente",
+      calendarLink: result.calendarLink ?? null,
+      icsContent: result.icsContent ?? null,
     });
   } catch (error) {
     return handleControllerError(res, error, "Error al reprogramar turno");

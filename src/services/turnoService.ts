@@ -29,6 +29,7 @@ import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener
 
 import { EventoTurno } from "../types/turno";
 import { ConsoleEmailService } from "./EmailService";
+import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 
 interface CreateTurnoContext {
   userRol: string;
@@ -92,7 +93,10 @@ export const createTurno = async (
 
   await notificarEventoTurno(turnoId, EventoTurno.CREADO);
 
-  return { turnoId };
+  const turno = await buildTurnoDominio(turnoId);
+  const calendarData = buildCalendarDataFromTurno(turno);
+
+  return { turnoId, ...calendarData };
 };
 
 const formatDate = (value: any) => {
@@ -253,7 +257,7 @@ export const reprogramarTurnoService = async (
   nuevaFecha: string,
   nuevaHora: string,
   context: TurnoActionContext
-): Promise<void> => {
+): Promise<{ calendarLink: string | null; icsContent: string | null }> => {
   if (context.userRol !== "paciente") {
     throw new DomainError("No autorizado", 403);
   }
@@ -315,6 +319,9 @@ export const reprogramarTurnoService = async (
     "Turno reprogramado por el paciente"
   );
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
+
+  const turnoActualizado = await buildTurnoDominio(turnoId);
+  return buildCalendarDataFromTurno(turnoActualizado);
 };
 
 interface TurnoActionNutriContext {
