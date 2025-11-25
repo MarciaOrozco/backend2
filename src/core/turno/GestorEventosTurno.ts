@@ -1,0 +1,36 @@
+import type { EventoTurno } from "../../types/turno";
+import type { IListenerTurno } from "./IListenerTurno";
+import type { Turno } from "../../types/turno";
+
+export class GestorEventosTurno {
+  private readonly listeners: Map<EventoTurno, IListenerTurno[]> = new Map();
+
+  subscribe(evento: EventoTurno, listener: IListenerTurno): void {
+    const listenersEvento = this.listeners.get(evento) ?? [];
+
+    const yaSuscripto = listenersEvento.includes(listener);
+    if (!yaSuscripto) {
+      listenersEvento.push(listener);
+      this.listeners.set(evento, listenersEvento);
+    }
+  }
+
+  unsubscribe(evento: EventoTurno, listener: IListenerTurno): void {
+    const listenersEvento = this.listeners.get(evento);
+    if (!listenersEvento) return;
+
+    const filtrados = listenersEvento.filter((l) => l !== listener);
+    if (filtrados.length) {
+      this.listeners.set(evento, filtrados);
+    } else {
+      this.listeners.delete(evento);
+    }
+  }
+
+  notify(evento: EventoTurno, turno: Turno): void {
+    const listenersEvento = this.listeners.get(evento);
+    if (!listenersEvento || !listenersEvento.length) return;
+
+    listenersEvento.forEach((listener) => listener.update(turno, evento));
+  }
+}

@@ -1,9 +1,14 @@
-import type { CreateTurnoPayload, CreateTurnoResult } from "../types/turno";
+import type {
+  CreateTurnoPayload,
+  CreateTurnoResult,
+  Turno,
+} from "../types/turno";
 import { DomainError } from "../types/errors";
 import {
   createTurno as createTurnoRepository,
   existsTurnoActivoEnHorarioExcepto,
   findTurnoById,
+  findTurnoDetalleById,
   findTurnosByPacienteId,
   insertTurnoLogEvento,
   updateTurnoEstado,
@@ -19,11 +24,28 @@ import { ensurePacientePropietarioByUser } from "../utils/ownershipService";
 import { pool } from "../config/db";
 import { RangoDisponibilidad } from "../types/agenda";
 import { findDisponibilidadByNutricionistaAndDia } from "../repositories/disponibilidadRepository";
+import { GestorEventosTurno } from "../core/turno/GestorEventosTurno";
+import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener";
+
+import { EventoTurno } from "../types/turno";
+import { ConsoleEmailService } from "./EmailService";
 
 interface CreateTurnoContext {
   userRol: string;
   userId: number;
 }
+
+const gestorEventosTurno = new GestorEventosTurno();
+const emailService = new ConsoleEmailService();
+const notificadorEmailListener = new NotificadorEmailListener(emailService);
+
+// Ejemplo de suscripción de listeners para los eventos del turno
+gestorEventosTurno.subscribe(EventoTurno.CREADO, notificadorEmailListener);
+gestorEventosTurno.subscribe(EventoTurno.CANCELADO, notificadorEmailListener);
+gestorEventosTurno.subscribe(
+  EventoTurno.REPROGRAMADO,
+  notificadorEmailListener
+);
 
 /**
  * Función interna que encapsula solo la creación de la fila en BD.
@@ -68,6 +90,8 @@ export const createTurno = async (
   //   await notificarTurnoConfirmado(turnoId);
   await vincularPacienteProfesional(turnoId);
 
+  await notificarEventoTurno(turnoId, EventoTurno.CREADO);
+
   return { turnoId };
 };
 
@@ -80,6 +104,48 @@ const formatDate = (value: any) => {
     return value.slice(0, 10);
   }
   return String(value);
+};
+
+const formatHora = (value: any) => {
+  if (!value) return "";
+  return value.toString().slice(0, 5);
+};
+
+const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
+  const detalle = await findTurnoDetalleById(pool, turnoId);
+
+  if (!detalle) {
+    throw new DomainError("Turno no encontrado", 404);
+  }
+
+  return {
+    id: detalle.turno_id,
+    fecha: formatDate(detalle.fecha) ?? "",
+    hora: formatHora(detalle.hora),
+    paciente: {
+      id: detalle.paciente_id,
+      nombre: detalle.paciente_nombre,
+      apellido: detalle.paciente_apellido,
+      email: detalle.paciente_email ?? "",
+    },
+    nutricionista: {
+      id: detalle.nutricionista_id,
+      nombre: detalle.nutricionista_nombre,
+      apellido: detalle.nutricionista_apellido,
+      email: detalle.nutricionista_email ?? "",
+    },
+    modalidadId: detalle.modalidad_id,
+    metodoPagoId: detalle.metodo_pago_id ?? null,
+    estadoTurnoId: detalle.estado_turno_id ?? null,
+  };
+};
+
+const notificarEventoTurno = async (
+  turnoId: number,
+  evento: EventoTurno
+): Promise<void> => {
+  const turno = await buildTurnoDominio(turnoId);
+  gestorEventosTurno.notify(evento, turno);
 };
 
 const mapTurnoPaciente = (row: any) => ({
@@ -162,6 +228,7 @@ export const cancelarTurnoService = async (
   }`;
 
   await insertTurnoLogEvento(pool, turnoId, mensaje);
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
 };
 
 interface TurnoActionContext {
@@ -247,6 +314,7 @@ export const reprogramarTurnoService = async (
     turnoId,
     "Turno reprogramado por el paciente"
   );
+  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 };
 
 interface TurnoActionNutriContext {
@@ -289,6 +357,7 @@ export const cancelarTurnoNutricionistaService = async (
     motivo ?? "Sin detalle"
   }`;
   await insertTurnoLogEvento(pool, turnoId, mensaje);
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
 };
 
 export const reprogramarTurnoNutricionistaService = async (
@@ -356,4 +425,5 @@ export const reprogramarTurnoNutricionistaService = async (
     turnoId,
     "Turno reprogramado por el profesional"
   );
+  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 };

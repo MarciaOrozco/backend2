@@ -53,6 +53,23 @@ interface TurnoRow extends RowDataPacket {
   estado_turno_id: number;
 }
 
+interface TurnoDetalleRow extends RowDataPacket {
+  turno_id: number;
+  paciente_id: number;
+  paciente_nombre: string | null;
+  paciente_apellido: string | null;
+  paciente_email: string | null;
+  nutricionista_id: number;
+  nutricionista_nombre: string | null;
+  nutricionista_apellido: string | null;
+  nutricionista_email: string | null;
+  fecha: Date | string;
+  hora: string | null;
+  estado_turno_id: number;
+  modalidad_id: number | null;
+  metodo_pago_id: number | null;
+}
+
 /**
  * Turnos activos (estado 1 ó 2) de un nutricionista en una fecha dada.
  * Usado para generación de slots.
@@ -221,6 +238,41 @@ export const findTurnoById = async (
         metodo_pago_id
       FROM turno
       WHERE turno_id = ?
+      LIMIT 1
+    `,
+    [turnoId]
+  );
+
+  return rows.length ? rows[0] : null;
+};
+
+export const findTurnoDetalleById = async (
+  client: Pool | PoolConnection = pool,
+  turnoId: number
+): Promise<TurnoDetalleRow | null> => {
+  const [rows] = await client.query<TurnoDetalleRow[]>(
+    `
+      SELECT
+        t.turno_id,
+        t.paciente_id,
+        u_p.nombre AS paciente_nombre,
+        u_p.apellido AS paciente_apellido,
+        u_p.email AS paciente_email,
+        t.nutricionista_id,
+        u_n.nombre AS nutricionista_nombre,
+        u_n.apellido AS nutricionista_apellido,
+        u_n.email AS nutricionista_email,
+        t.fecha,
+        t.hora,
+        t.estado_turno_id,
+        t.modalidad_id,
+        t.metodo_pago_id
+      FROM turno t
+      JOIN paciente p ON t.paciente_id = p.paciente_id
+      JOIN usuario u_p ON p.usuario_id = u_p.usuario_id
+      JOIN nutricionista n ON t.nutricionista_id = n.nutricionista_id
+      JOIN usuario u_n ON n.usuario_id = u_n.usuario_id
+      WHERE t.turno_id = ?
       LIMIT 1
     `,
     [turnoId]
