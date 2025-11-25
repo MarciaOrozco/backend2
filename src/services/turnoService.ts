@@ -28,7 +28,7 @@ import { GestorEventosTurno } from "../core/turno/GestorEventosTurno";
 import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener";
 
 import { EventoTurno } from "../types/turno";
-import { ConsoleEmailService } from "./EmailService";
+import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 
 interface CreateTurnoContext {
@@ -37,7 +37,7 @@ interface CreateTurnoContext {
 }
 
 const gestorEventosTurno = new GestorEventosTurno();
-const emailService = new ConsoleEmailService();
+const emailService = createEmailService();
 const notificadorEmailListener = new NotificadorEmailListener(emailService);
 
 // Ejemplo de suscripción de listeners para los eventos del turno
