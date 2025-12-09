@@ -30,6 +30,22 @@ import { getPacienteContactoById } from "../repositories/pacienteRepository";
 import { findEstadoRegistroIdByNombre } from "../repositories/estadoRegistroRepository";
 import { insertConsulta } from "../repositories/consultaRepository";
 import { pool } from "../config/db";
+import { createEmailService } from "./EmailService";
+import crypto from "crypto";
+
+const emailService = createEmailService();
+const FRONTEND_BASE_URL =
+  process.env.FRONTEND_BASE_URL ??
+  process.env.APP_BASE_URL ??
+  "http://localhost:5173";
+
+const buildRegistroLink = (email: string, token: string) => {
+  const params = new URLSearchParams({
+    email,
+    token,
+  });
+  return `${FRONTEND_BASE_URL.replace(/\/$/, "")}/register?${params.toString()}`;
+};
 
 export const getNutricionistas = async (
   filters: NutricionistaFilters
@@ -258,6 +274,9 @@ export const agregarPacienteManual = async (
     throw new DomainError("Email inválido", 400);
   }
 
+  const tokenInvitacion = crypto.randomBytes(24).toString("hex");
+  const fechaExpiracion = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   const connection = await pool.getConnection();
 
   try {
@@ -345,12 +364,12 @@ export const agregarPacienteManual = async (
           SET
             estado_registro_id = ?,
             fecha_invitacion = NOW(),
-            fecha_expiracion = NULL,
-            token_invitacion = NULL,
+            fecha_expiracion = ?,
+            token_invitacion = ?,
             usuario_id = ?
           WHERE paciente_id = ?
         `,
-        [estadoPendienteId, usuarioId, pacienteId]
+        [estadoPendienteId, fechaExpiracion, tokenInvitacion, usuarioId, pacienteId]
       );
     } else {
       const [pacienteResult]: any = await connection.query(
@@ -362,9 +381,9 @@ export const agregarPacienteManual = async (
             fecha_expiracion,
             token_invitacion
           )
-          VALUES (?, ?, NOW(), NULL, NULL)
+          VALUES (?, ?, NOW(), ?, ?)
         `,
-        [usuarioId, estadoPendienteId]
+        [usuarioId, estadoPendienteId, fechaExpiracion, tokenInvitacion]
       );
 
       pacienteId = Number(pacienteResult.insertId);
@@ -394,6 +413,22 @@ export const agregarPacienteManual = async (
 
     await connection.commit();
 
+    const registroLink = buildRegistroLink(emailNormalizado, tokenInvitacion);
+
+    void emailService
+      .sendEmail({
+        to: emailNormalizado,
+        subject: "Te invitaron a registrarte en Nutrito",
+        body: `Hola ${payload.nombre},\n\n${"Tu nutricionista te invitó a registrarte para ver tus planes y turnos."}\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
+      })
+      .catch((error) => {
+        console.error("No se pudo enviar invitación de registro al paciente", {
+          error,
+          email: emailNormalizado,
+          pacienteId,
+        });
+      });
+
     return {
       paciente: {
         pacienteId,
@@ -403,6 +438,8 @@ export const agregarPacienteManual = async (
         email: emailNormalizado,
         estadoRegistro: "pendiente",
         estadoRegistroLabel: "No registrado",
+        invitacionEnviada: true,
+        registroLink,
       },
       consultaTemporal: {
         consultaId: consultaTemporalId,

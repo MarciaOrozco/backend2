@@ -9,6 +9,7 @@ import {
 } from "../services/nutricionistaService";
 import type { NutricionistaFilters } from "../types/nutricionista";
 import { handleControllerError } from "../utils/errorsUtils";
+import { updateDisponibilidadNutricionista } from "../services/agendaService";
 
 export const getNutricionistas = async (req: Request, res: Response) => {
   try {
@@ -192,5 +193,35 @@ export const getNutricionistaById = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error al obtener nutricionista:", error);
     return res.status(500).json({ error: "Error al obtener nutricionista" });
+  }
+};
+
+export const setDisponibilidad = async (req: Request, res: Response) => {
+  const nutricionistaId = Number(req.params.nutricionistaId);
+
+  if (Number.isNaN(nutricionistaId)) {
+    return res.status(400).json({ error: "nutricionistaId inválido" });
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ error: "No autenticado" });
+  }
+
+  const rangos = Array.isArray(req.body?.rangos) ? req.body.rangos : [];
+
+  try {
+    await updateDisponibilidadNutricionista(nutricionistaId, rangos, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+      userNutricionistaId: req.user.nutricionistaId,
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      "No se pudo actualizar la disponibilidad"
+    );
   }
 };

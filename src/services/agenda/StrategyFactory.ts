@@ -3,8 +3,16 @@ import { Estrategia20Min } from "./strategies/Estrategia20Min";
 import { Estrategia30Min } from "./strategies/Estrategia30Min";
 import { Estrategia60Min } from "./strategies/Estrategia60Min";
 
-export function crearEstrategia(nombre?: string): EstrategiaGeneracion {
-  switch ((nombre ?? "").toLowerCase()) {
+const normalizar = (valor?: string | number | null) => {
+  if (valor == null) return "";
+  if (typeof valor === "number") return String(valor);
+  return valor.toString().trim().toLowerCase();
+};
+
+export function crearEstrategia(
+  nombre?: string | number | null
+): EstrategiaGeneracion {
+  switch (normalizar(nombre)) {
     case "20":
     case "20min":
     case "20-min":

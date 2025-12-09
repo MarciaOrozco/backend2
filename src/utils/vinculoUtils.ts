@@ -18,7 +18,6 @@ export const verificarAccesoPaciente = async (req: any, pacienteId: number) => {
 
   const { usuarioId, rol } = req.user;
 
-  // 👤 Paciente accediendo a su propio perfil
   if (rol === "paciente") {
     const asociado = await obtenerPacienteIdPorUsuario(usuarioId);
     if (!asociado || Number(asociado) !== Number(pacienteId)) {
@@ -27,7 +26,6 @@ export const verificarAccesoPaciente = async (req: any, pacienteId: number) => {
     return;
   }
 
-  // 🩺 Nutricionista vinculado
   if (rol === "nutricionista") {
     const [nutriRows]: any = await pool.query(
       `SELECT nutricionista_id FROM nutricionista WHERE usuario_id = ?`,

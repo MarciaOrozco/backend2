@@ -6,6 +6,7 @@ import {
   getPacientesVinculados,
   getTurnosNutricionista,
   getPacientePerfilParaNutricionista,
+  setDisponibilidad,
 } from "../controllers/nutricionistaController";
 import {
   cancelarTurnoNutricionista,
@@ -52,6 +53,12 @@ router.get(
   authenticateJWT,
   authorizeRole("nutricionista", "admin"),
   getPacientePerfilParaNutricionista
+);
+router.put(
+  "/:nutricionistaId/disponibilidad",
+  authenticateJWT,
+  authorizeRole("nutricionista"),
+  setDisponibilidad
 );
 
 export default router;

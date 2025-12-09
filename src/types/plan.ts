@@ -113,7 +113,6 @@ export interface PlanRecord {
   origin: PlanOrigin;
   title?: string;
   notes?: string;
-  // Campos de metadata en el mismo nivel para compatibilidad
   patientInfo?: PlanMetadata["patientInfo"];
   objectives?: PlanMetadata["objectives"];
   medicalConditions?: PlanMetadata["medicalConditions"];

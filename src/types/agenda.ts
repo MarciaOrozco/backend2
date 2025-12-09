@@ -2,6 +2,7 @@ export interface RangoDisponibilidad {
   dia_semana: string;
   hora_inicio: string; // 'HH:MM:SS'
   hora_fin: string;
+  intervalo_minutos?: number | null;
 }
 
 export interface TurnoExistente {

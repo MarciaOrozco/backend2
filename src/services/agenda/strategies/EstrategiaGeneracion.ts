@@ -5,6 +5,7 @@ export interface RangoDisponibilidad {
   dia_semana: string; // Ej: 'lunes'
   hora_inicio: string; // HH:MM:SS
   hora_fin: string; // HH:MM:SS
+  intervalo_minutos?: number | null;
 }
 
 /**
