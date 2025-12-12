@@ -10,6 +10,7 @@ import {
 import type { NutricionistaFilters } from "../types/nutricionista";
 import { handleControllerError } from "../utils/errorsUtils";
 import { updateDisponibilidadNutricionista } from "../services/agendaService";
+import { parseCsv } from "../utils/stringUtils";
 
 export const getNutricionistas = async (req: Request, res: Response) => {
   try {
@@ -18,20 +19,8 @@ export const getNutricionistas = async (req: Request, res: Response) => {
     const filters: NutricionistaFilters = {
       nombre: typeof nombre === "string" ? nombre : undefined,
       especialidad: typeof especialidad === "string" ? especialidad : undefined,
-      especialidades:
-        typeof especialidades === "string"
-          ? especialidades
-              .split(",")
-              .map((value) => value.trim())
-              .filter(Boolean)
-          : undefined,
-      modalidades:
-        typeof modalidades === "string"
-          ? modalidades
-              .split(",")
-              .map((value) => value.trim())
-              .filter(Boolean)
-          : undefined,
+      especialidades: parseCsv(especialidades),
+      modalidades: parseCsv(modalidades),
     };
 
     const data = await getNutricionistasService(filters);

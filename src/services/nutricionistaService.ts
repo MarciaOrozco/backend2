@@ -32,6 +32,7 @@ import { insertConsulta } from "../repositories/consultaRepository";
 import { pool } from "../config/db";
 import { createEmailService } from "./EmailService";
 import crypto from "crypto";
+import { parseDbCsv } from "../utils/stringUtils";
 
 const emailService = createEmailService();
 const FRONTEND_BASE_URL =
@@ -44,7 +45,10 @@ const buildRegistroLink = (email: string, token: string) => {
     email,
     token,
   });
-  return `${FRONTEND_BASE_URL.replace(/\/$/, "")}/register?${params.toString()}`;
+  return `${FRONTEND_BASE_URL.replace(
+    /\/$/,
+    ""
+  )}/register?${params.toString()}`;
 };
 
 export const getNutricionistas = async (
@@ -58,18 +62,8 @@ export const getNutricionistas = async (
     titulo: row.sobre_mi,
     reputacionPromedio: Number(row.reputacion_promedio ?? 0),
     totalOpiniones: Number(row.totalOpiniones ?? 0),
-    especialidades: row.especialidades
-      ? String(row.especialidades)
-          .split(",")
-          .map((value: string) => value.trim())
-          .filter(Boolean)
-      : [],
-    modalidades: row.modalidades
-      ? String(row.modalidades)
-          .split(",")
-          .map((value: string) => value.trim())
-          .filter(Boolean)
-      : [],
+    especialidades: parseDbCsv(row.especialidades),
+    modalidades: parseDbCsv(row.modalidades),
   }));
 };
 
@@ -130,7 +124,11 @@ export const getNutricionistaById = async (
 
 export const getPacientesVinculados = async (
   nutricionistaId: number,
-  context: { userId: number; userRol: string; userNutricionistaId?: number | null }
+  context: {
+    userId: number;
+    userRol: string;
+    userNutricionistaId?: number | null;
+  }
 ) => {
   if (context.userRol === "nutricionista") {
     await ensureNutricionistaPropietario(
@@ -168,7 +166,11 @@ export const getPacientesVinculados = async (
 
 export const getTurnosNutricionista = async (
   nutricionistaId: number,
-  context: { userId: number; userRol: string; userNutricionistaId?: number | null }
+  context: {
+    userId: number;
+    userRol: string;
+    userNutricionistaId?: number | null;
+  }
 ) => {
   if (context.userRol === "nutricionista") {
     await ensureNutricionistaPropietario(
@@ -214,7 +216,11 @@ export const getTurnosNutricionista = async (
 export const getPacientePerfilParaNutricionista = async (
   nutricionistaId: number,
   pacienteId: number,
-  context: { userId: number; userRol: string; userNutricionistaId?: number | null }
+  context: {
+    userId: number;
+    userRol: string;
+    userNutricionistaId?: number | null;
+  }
 ) => {
   if (context.userRol === "nutricionista") {
     await ensureNutricionistaPropietario(
@@ -253,18 +259,13 @@ export const agregarPacienteManual = async (
   payload: { nombre: string; apellido: string; email: string },
   context: AgregarPacienteManualContext
 ) => {
-  if (context.userRol !== "nutricionista") {
+  if (context.userRol !== "nutricionista")
     throw new DomainError("No autorizado", 403);
-  }
-
-  const asociado = await ensureNutricionistaPropietario(
-    context.userId,
-    context.userNutricionistaId ?? nutricionistaId
-  );
-
-  if (Number(asociado) !== Number(nutricionistaId)) {
+  if (
+    !context.userNutricionistaId ||
+    context.userNutricionistaId !== nutricionistaId
+  )
     throw new DomainError("No autorizado para esta operación", 403);
-  }
 
   const emailNormalizado = String(payload.email).trim().toLowerCase();
   const emailRegex =
@@ -328,7 +329,13 @@ export const agregarPacienteManual = async (
           INSERT INTO usuario (nombre, apellido, email, password, telefono, fecha_registro, rol_id)
           VALUES (?, ?, ?, ?, NULL, NOW(), ?)
         `,
-        [payload.nombre.trim(), payload.apellido.trim(), emailNormalizado, "", rolPacienteId]
+        [
+          payload.nombre.trim(),
+          payload.apellido.trim(),
+          emailNormalizado,
+          "",
+          rolPacienteId,
+        ]
       );
       usuarioId = Number(result.insertId);
     }
@@ -369,7 +376,13 @@ export const agregarPacienteManual = async (
             usuario_id = ?
           WHERE paciente_id = ?
         `,
-        [estadoPendienteId, fechaExpiracion, tokenInvitacion, usuarioId, pacienteId]
+        [
+          estadoPendienteId,
+          fechaExpiracion,
+          tokenInvitacion,
+          usuarioId,
+          pacienteId,
+        ]
       );
     } else {
       const [pacienteResult]: any = await connection.query(
@@ -419,7 +432,9 @@ export const agregarPacienteManual = async (
       .sendEmail({
         to: emailNormalizado,
         subject: "Te invitaron a registrarte en Nutrito",
-        body: `Hola ${payload.nombre},\n\n${"Tu nutricionista te invitó a registrarte para ver tus planes y turnos."}\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
+        body: `Hola ${
+          payload.nombre
+        },\n\n${"Tu nutricionista te invitó a registrarte para ver tus planes y turnos."}\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
       })
       .catch((error) => {
         console.error("No se pudo enviar invitación de registro al paciente", {

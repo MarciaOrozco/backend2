@@ -1,7 +1,6 @@
 import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import fs from "fs";
 import path from "path";
-import PDFDocument from "pdfkit";
 import { pool } from "../config/db";
 import {
   DEFAULT_DAY_NAMES,
@@ -31,6 +30,7 @@ import {
 } from "../repositories/planRepository";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { DomainError } from "../types/errors";
+import { PlanPdfExporter } from "./export/PlanPdfExporter";
 
 interface PlanAccessContext {
   rol: string;
@@ -570,10 +570,10 @@ export const markPlanAsValidated = async (
   }
 
   if (context) {
-    const plan = await getPlanById(planId, context);
     if (context.rol !== "nutricionista" && context.rol !== "admin") {
       throw new DomainError("Solo el nutricionista puede validar el plan", 403);
     }
+    const plan = await getPlanById(planId, context);
     ensurePlanAccess(plan, context);
   }
 
@@ -595,197 +595,8 @@ export const exportarPlan = async (
 ): Promise<{ filePath: string; fileName: string }> => {
   const plan = await getPlanById(planId, context);
 
-  const uploadsDir = path.resolve(process.cwd(), "uploads");
-  await fs.promises.mkdir(uploadsDir, { recursive: true });
-  const tempPath = path.join(uploadsDir, `plan-${planId}-${Date.now()}.pdf`);
-
-  const doc = new PDFDocument({ margin: 50 });
-  const writeStream = fs.createWriteStream(tempPath);
-  doc.pipe(writeStream);
-
-  doc.fontSize(20).text(`Plan alimentario #${plan.planId}`, {
-    align: "center",
-  });
-  doc.moveDown();
-
-  doc
-    .fontSize(12)
-    .text(
-      `Estado: ${plan.status.toUpperCase()} | Origen: ${
-        plan.origin?.toUpperCase() ?? "MANUAL"
-      }`
-    );
-  doc.text(`Fecha de creacion: ${formatDate(plan.createdAt)}`);
-  doc.text(`Ultima actualizacion: ${formatDate(plan.updatedAt)}`);
-  doc.moveDown();
-
-  doc.fontSize(14).text("Paciente", { underline: true });
-  doc.fontSize(12).text(`ID Paciente: ${plan.patientId}`);
-  doc.moveDown(0.5);
-
-  doc.fontSize(14).text("Nutricionista", { underline: true });
-  doc.fontSize(12).text(`ID Nutricionista: ${plan.nutritionistId}`);
-  doc.moveDown();
-
-  if (plan.patientInfo) {
-    const info = plan.patientInfo;
-    doc.fontSize(14).text("Datos del paciente", { underline: true });
-    if (info.age) doc.text(`Edad: ${info.age}`);
-    if (info.sex) doc.text(`Sexo: ${info.sex}`);
-    if (info.weight) doc.text(`Peso: ${info.weight} kg`);
-    if (info.height) doc.text(`Altura: ${info.height} cm`);
-    if (info.activityLevel)
-      doc.text(`Nivel de actividad: ${info.activityLevel}`);
-    doc.moveDown();
-  }
-
-  if (plan.objectives) {
-    const objectives = plan.objectives;
-    doc.fontSize(14).text("Objetivos", { underline: true });
-    if (objectives.primary) doc.text(`Principal: ${objectives.primary}`);
-    if (objectives.secondary) doc.text(`Secundario: ${objectives.secondary}`);
-    if (objectives.targetWeight)
-      doc.text(`Peso objetivo: ${objectives.targetWeight} kg`);
-    if (objectives.timeframe) doc.text(`Tiempo estimado: ${objectives.timeframe}`);
-    doc.moveDown();
-  }
-
-  if (
-    plan.medicalConditions?.conditions?.length ||
-    plan.medicalConditions?.notes
-  ) {
-    doc.fontSize(14).text("Condiciones medicas", { underline: true });
-    if (plan.medicalConditions?.conditions?.length) {
-      doc.text(
-        `Lista: ${plan.medicalConditions.conditions.join(", ")}`
-      );
-    }
-    if (plan.medicalConditions?.notes) {
-      doc.text(`Notas: ${plan.medicalConditions.notes}`);
-    }
-    doc.moveDown();
-  }
-
-  if (
-    plan.restrictions?.allergies?.length ||
-    plan.restrictions?.dislikes?.length ||
-    plan.restrictions?.dietType ||
-    plan.restrictions?.other
-  ) {
-    doc.fontSize(14).text("Restricciones y preferencias", {
-      underline: true,
-    });
-    if (plan.restrictions?.dietType) {
-      doc.text(`Tipo de dieta: ${plan.restrictions.dietType}`);
-    }
-    if (plan.restrictions?.allergies?.length) {
-      doc.text(
-        `Alergias: ${plan.restrictions.allergies.join(", ")}`
-      );
-    }
-    if (plan.restrictions?.dislikes?.length) {
-      doc.text(
-        `No le agradan: ${plan.restrictions.dislikes.join(", ")}`
-      );
-    }
-    if (plan.restrictions?.other) {
-      doc.text(`Otras indicaciones: ${plan.restrictions.other}`);
-    }
-    doc.moveDown();
-  }
-
-  if (plan.notes) {
-    doc.fontSize(14).text("Notas generales", { underline: true });
-    doc.fontSize(12).text(plan.notes);
-    doc.moveDown();
-  }
-
-  doc.fontSize(16).text("Plan semanal", { underline: true });
-  doc.moveDown();
-
-  (plan.days ?? []).forEach((day) => {
-    doc.fontSize(14).text(day.name ?? `Dia ${day.dayNumber}`, {
-      underline: true,
-    });
-    if (day.goal) {
-      doc.fontSize(12).text(`Objetivo del dia: ${day.goal}`);
-    }
-    if (day.totals) {
-      const totalsEntries = Object.entries(day.totals).filter(
-        ([_, value]) => value !== undefined && value !== null
-      );
-      if (totalsEntries.length) {
-        doc
-          .fontSize(12)
-          .text(
-            `Totales: ${totalsEntries
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(" | ")}`
-          );
-      }
-    }
-    doc.moveDown(0.5);
-
-    if (!day.meals.length) {
-      doc.fontSize(12).text("- Sin comidas registradas");
-      doc.moveDown();
-      return;
-    }
-
-    day.meals.forEach((meal) => {
-      doc.fontSize(12).text(`• ${meal.type}`);
-      if (meal.title) doc.text(`  Titulo: ${meal.title}`);
-      if (meal.time) doc.text(`  Hora: ${meal.time}`);
-      if (meal.description) doc.text(`  Detalle: ${meal.description}`);
-
-      const nutrients = [
-        meal.calories ? `Calorias: ${meal.calories}` : null,
-        meal.proteins ? `Proteinas: ${meal.proteins}` : null,
-        meal.carbs ? `Carbohidratos: ${meal.carbs}` : null,
-        meal.fats ? `Grasas: ${meal.fats}` : null,
-        meal.fiber ? `Fibra: ${meal.fiber}` : null,
-      ].filter(Boolean);
-      if (nutrients.length) {
-        doc.text(`  Nutrientes: ${nutrients.join(" | ")}`);
-      }
-
-      if (meal.foods?.length) {
-        doc.text(
-          `  Alimentos: ${meal.foods
-            .map((food) =>
-              food.quantity
-                ? `${food.name} (${food.quantity}${food.unit ? ` ${food.unit}` : ""})`
-                : food.name
-            )
-            .join(", ")}`
-        );
-      }
-
-      if (meal.notes) {
-        doc.text(`  Observaciones: ${meal.notes}`);
-      }
-
-      doc.moveDown(0.5);
-    });
-
-    if (day.notes) {
-      doc.text(`Notas del dia: ${day.notes}`);
-    }
-
-    doc.moveDown();
-  });
-
-  doc.end();
-
-  await new Promise<void>((resolve, reject) => {
-    writeStream.on("finish", () => resolve());
-    writeStream.on("error", (err) => reject(err));
-  });
-
-  return {
-    filePath: tempPath,
-    fileName: `plan-${planId}.pdf`,
-  };
+  const exporter = new PlanPdfExporter();
+  return exporter.export({ plan });
 };
 
 export const eliminarPlan = async (

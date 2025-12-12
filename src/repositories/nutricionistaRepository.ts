@@ -1,18 +1,17 @@
-import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
-import type { NutricionistaFilters } from "../types/nutricionista";
+import type {
+  EducacionRow,
+  EspecialidadRow,
+  MetodoPagoRow,
+  ModalidadRow,
+  NutricionistaBaseRow,
+  NutricionistaFilters,
+  NutricionistaRow,
+  ObraSocialRow,
+  PacienteVinculadoRow,
+  ResenaRow,
+} from "../types/nutricionista";
 import type { Pool, PoolConnection } from "mysql2/promise";
-
-interface NutricionistaRow extends RowDataPacket {
-  nutricionista_id: number;
-  nombre: string | null;
-  apellido: string | null;
-  sobre_mi: string | null;
-  reputacion_promedio: number | null;
-  totalOpiniones: number | null;
-  especialidades: string | null;
-  modalidades: string | null;
-}
 
 export const findNutricionistas = async (
   filters: NutricionistaFilters
@@ -103,16 +102,6 @@ export const findNutricionistas = async (
 
 // ---------------- BASE ----------------
 
-interface NutricionistaBaseRow extends RowDataPacket {
-  nutricionista_id: number;
-  usuario_id: number;
-  nombre: string | null;
-  apellido: string | null;
-  email: string | null;
-  sobre_mi: string | null;
-  reputacion_promedio: number | null;
-}
-
 export const findNutricionistaBaseById = async (
   id: number
 ): Promise<NutricionistaBaseRow | null> => {
@@ -130,10 +119,6 @@ export const findNutricionistaBaseById = async (
 };
 
 // ---------------- ESPECIALIDADES ----------------
-
-interface EspecialidadRow extends RowDataPacket {
-  nombre: string;
-}
 
 export const findEspecialidadesByNutricionista = async (
   id: number
@@ -154,11 +139,6 @@ export const findEspecialidadesByNutricionista = async (
 
 // ---------------- MODALIDADES ----------------
 
-interface ModalidadRow extends RowDataPacket {
-  modalidad_id: number;
-  nombre: string;
-}
-
 export const findModalidadesByNutricionista = async (
   id: number
 ): Promise<ModalidadRow[]> => {
@@ -178,13 +158,6 @@ export const findModalidadesByNutricionista = async (
 
 // ---------------- EDUCACIÓN ----------------
 
-interface EducacionRow extends RowDataPacket {
-  educacion_id: number;
-  titulo: string;
-  institucion: string;
-  descripcion: string;
-}
-
 export const findEducacionByNutricionista = async (
   id: number
 ): Promise<EducacionRow[]> => {
@@ -202,12 +175,6 @@ export const findEducacionByNutricionista = async (
 };
 
 // ---------------- MÉTODOS DE PAGO ----------------
-
-interface MetodoPagoRow extends RowDataPacket {
-  metodo_pago_id: number;
-  nombre: string;
-  descripcion: string | null;
-}
 
 export const findMetodosPagoByNutricionista = async (
   id: number
@@ -228,11 +195,6 @@ export const findMetodosPagoByNutricionista = async (
 
 // ---------------- OBRAS SOCIALES ----------------
 
-interface ObraSocialRow extends RowDataPacket {
-  obra_social_id: number;
-  nombre: string;
-}
-
 export const findObrasSocialesByNutricionista = async (
   id: number
 ): Promise<ObraSocialRow[]> => {
@@ -251,15 +213,6 @@ export const findObrasSocialesByNutricionista = async (
 };
 
 // ---------------- RESEÑAS ----------------
-
-interface ResenaRow extends RowDataPacket {
-  resena_id: number;
-  fecha: string;
-  comentario: string;
-  puntuacion: number;
-  paciente_nombre: string | null;
-  paciente_apellido: string | null;
-}
 
 export const findResenasByNutricionista = async (
   id: number
@@ -284,18 +237,6 @@ export const findResenasByNutricionista = async (
 
   return rows;
 };
-
-/* --- Pacientes vinculados a un nutricionista --- */
-interface PacienteVinculadoRow extends RowDataPacket {
-  paciente_id: number;
-  nombre: string | null;
-  apellido: string | null;
-  email: string | null;
-  telefono: string | null;
-  estado_registro: string | null;
-  fecha_invitacion: Date | string | null;
-  fecha_expiracion: Date | string | null;
-}
 
 export const findPacientesVinculados = async (
   client: Pool | PoolConnection = pool,

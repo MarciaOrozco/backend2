@@ -1,7 +1,5 @@
-import fs from "fs";
-import path from "path";
-import PDFDocument from "pdfkit";
 import { DomainError } from "../types/errors";
+import path from "path";
 import type { CreateTurnoPayload } from "../types/turno";
 import {
   ConsultaEvolucionRow,
@@ -19,10 +17,12 @@ import {
   type DocumentoConsultaRow,
   type HistorialPesoRow,
 } from "../repositories/consultaRepository";
+import { pool } from "../config/db";
 import { toDateISO } from "../utils/dateUtils";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { crearTurnoInterno } from "./turnoService";
 import { vincularPacienteProfesional } from "./vinculacionService";
+import { ConsultaPdfExporter } from "./export/ConsultaPdfExporter";
 
 const ALLOWED_ESTADOS = new Set(["borrador", "guardada", "cerrada"]);
 const ALLOWED_VISIBILIDAD = new Set(["paciente", "profesional"]);
@@ -148,24 +148,16 @@ export const listarConsultasPaciente = async (
 ): Promise<ConsultaListadoRow[]> => {
   const { rolUsuario, nutricionistaId } = context;
 
-  let filtroNutricionistaId: number | undefined;
+  // Si es nutricionista, debe tener id; si no, error
+  const filtroNutricionistaId =
+    rolUsuario === "nutricionista"
+      ? nutricionistaId ??
+        (() => {
+          throw new DomainError("Nutricionista no registrado", 403);
+        })()
+      : undefined;
 
-  if (rolUsuario === "nutricionista") {
-    if (!nutricionistaId) {
-      throw new DomainError("Nutricionista no registrado", 403);
-    }
-    filtroNutricionistaId = nutricionistaId;
-  } else {
-    filtroNutricionistaId = undefined;
-  }
-
-  const consultas = await findConsultasByPaciente(
-    undefined,
-    pacienteId,
-    filtroNutricionistaId
-  );
-
-  return consultas;
+  return findConsultasByPaciente(pool, pacienteId, filtroNutricionistaId);
 };
 
 /**
@@ -175,7 +167,7 @@ export const listarConsultasPaciente = async (
 export const obtenerEvolucionPacienteService = async (
   pacienteId: number
 ): Promise<RegistroEvolucion[]> => {
-  const rows = await findEvolucionByPacienteId(undefined, pacienteId);
+  const rows = await findEvolucionByPacienteId(pool, pacienteId);
 
   const registros: RegistroEvolucion[] = rows
     .map((row: ConsultaEvolucionRow) => ({
@@ -211,7 +203,11 @@ export const crearConsultaService = async (
 
   await assertVinculoActivo(pacienteId, nutricionistaId);
 
-  const consultaId = await insertConsulta(undefined, pacienteId, nutricionistaId);
+  const consultaId = await insertConsulta(
+    pool,
+    pacienteId,
+    nutricionistaId
+  );
 
   return { consultaId };
 };
@@ -220,7 +216,7 @@ export const obtenerConsultaService = async (
   consultaId: number,
   context: ContextoUsuario
 ) => {
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
 
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
@@ -235,9 +231,9 @@ export const obtenerConsultaService = async (
     await assertVinculoActivo(consulta.paciente_id, nutricionistaId);
   }
 
-  const documentos = await findDocumentosByConsultaId(undefined, consultaId);
+  const documentos = await findDocumentosByConsultaId(pool, consultaId);
   const historialPeso = await findHistorialPeso(
-    undefined,
+    pool,
     consulta.paciente_id,
     nutricionistaId ?? consulta.nutricionista_id
   );
@@ -263,7 +259,7 @@ export const actualizarConsultaService = async (
   body: Record<string, any>,
   context: ContextoUsuario
 ): Promise<void> => {
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
   }
@@ -283,7 +279,7 @@ export const actualizarConsultaService = async (
     throw new DomainError("No hay cambios para guardar", 422);
   }
 
-  await updateConsultaById(undefined, consultaId, payload);
+  await updateConsultaById(pool, consultaId, payload);
 };
 
 export const eliminarConsultaService = async (
@@ -298,13 +294,10 @@ export const eliminarConsultaService = async (
   }
 
   if (motivo === "Otra" && !detalle) {
-    throw new DomainError(
-      "Debe indicar un detalle para el motivo 'Otra'",
-      422
-    );
+    throw new DomainError("Debe indicar un detalle para el motivo 'Otra'", 422);
   }
 
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
   }
@@ -318,7 +311,7 @@ export const eliminarConsultaService = async (
     await assertVinculoActivo(consulta.paciente_id, nutricionistaId);
   }
 
-  await deleteConsultaById(undefined, consultaId);
+  await deleteConsultaById(pool, consultaId);
 };
 
 export interface DocumentoSubido {
@@ -347,7 +340,7 @@ export const subirDocumentosConsultaService = async (
     );
   }
 
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
   }
@@ -366,7 +359,7 @@ export const subirDocumentosConsultaService = async (
 
   for (const file of files) {
     const rutaRelativa = path.relative(process.cwd(), file.path);
-    await insertDocumentoConsulta(undefined, {
+    await insertDocumentoConsulta(pool, {
       pacienteId: consulta.paciente_id,
       consultaId,
       descripcion: file.originalname,
@@ -384,7 +377,7 @@ export const exportarConsultaService = async (
   secciones: string[] | undefined,
   context: ContextoUsuario
 ): Promise<{ filePath: string; fileName: string }> => {
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
   }
@@ -398,63 +391,20 @@ export const exportarConsultaService = async (
     await assertVinculoActivo(consulta.paciente_id, nutricionistaId);
   }
 
-  const doc = new PDFDocument();
-  const uploadsDir = path.resolve(process.cwd(), "uploads");
-  const fileName = `consulta-${consultaId}-${Date.now()}.pdf`;
-  const tempPath = path.join(uploadsDir, fileName);
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  const documentos = await findDocumentosByConsultaId(pool, consultaId);
+  const historialPeso = await findHistorialPeso(
+    pool,
+    consulta.paciente_id,
+    nutricionistaId ?? consulta.nutricionista_id
+  );
 
-  const writeStream = fs.createWriteStream(tempPath);
-  doc.pipe(writeStream);
-
-  const incluirSeccion = (section: string) =>
-    !secciones?.length || secciones.includes(section);
-
-  doc.fontSize(18).text(`Consulta #${consultaId}`, { underline: true });
-  doc.moveDown();
-
-  if (incluirSeccion("informacion")) {
-    doc.fontSize(14).text("Información", { underline: true });
-    doc.fontSize(12).text(`Fecha: ${consulta.fecha_consulta}`);
-    doc.fontSize(12).text(`Estado: ${consulta.estado}`);
-    doc.moveDown();
-  }
-
-  if (incluirSeccion("motivo")) {
-    doc.fontSize(14).text("Motivo", { underline: true });
-    doc.fontSize(12).text(consulta.motivo ?? "-");
-    doc.fontSize(12).text(`Antecedentes: ${consulta.antecedentes ?? "-"}`);
-    doc.fontSize(12).text(`Objetivos: ${consulta.objetivos ?? "-"}`);
-    doc.moveDown();
-  }
-
-  if (incluirSeccion("medidas")) {
-    doc.fontSize(14).text("Medidas", { underline: true });
-    doc.fontSize(12).text(`Peso: ${consulta.peso ?? "-"}`);
-    doc.fontSize(12).text(`Altura: ${consulta.altura ?? "-"}`);
-    doc.fontSize(12).text(`IMC: ${consulta.imc ?? "-"}`);
-    doc.moveDown();
-  }
-
-  if (incluirSeccion("notas")) {
-    doc.fontSize(14).text("Notas", { underline: true });
-    doc.fontSize(12).text(`Resumen: ${consulta.resumen ?? "-"}`);
-    doc.fontSize(12).text(`Diagnóstico: ${consulta.diagnostico ?? "-"}`);
-    doc.fontSize(12).text(`Indicaciones: ${consulta.indicaciones ?? "-"}`);
-    doc.moveDown();
-  }
-
-  doc.end();
-
-  await new Promise<void>((resolve, reject) => {
-    writeStream.on("finish", () => resolve());
-    writeStream.on("error", (err) => reject(err));
+  const exporter = new ConsultaPdfExporter();
+  return exporter.export({
+    consulta,
+    documentos,
+    historialPeso,
+    secciones,
   });
-
-  return {
-    filePath: tempPath,
-    fileName: `consulta-${consultaId}.pdf`,
-  };
 };
 
 export const programarProximaCitaService = async (
@@ -476,7 +426,7 @@ export const programarProximaCitaService = async (
     );
   }
 
-  const consulta = await findConsultaById(undefined, consultaId);
+  const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
     throw new DomainError("Consulta no encontrada", 404);
   }

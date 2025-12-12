@@ -27,3 +27,19 @@ export const parsePacienteId = (req: Request): number | null => {
   const parsed = Number(raw);
   return Number.isNaN(parsed) ? null : parsed;
 };
+
+export const parseCsv = (value?: unknown): string[] | undefined =>
+  typeof value === "string"
+    ? value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : undefined;
+
+export const parseDbCsv = (value?: unknown): string[] =>
+  typeof value === "string"
+    ? value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : [];
