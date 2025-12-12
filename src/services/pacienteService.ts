@@ -28,7 +28,7 @@ const toDateString = (value: Date | string | null): string | null => {
 export const obtenerContactoPaciente = async (
   pacienteId: number
 ): Promise<PacienteContacto> => {
-  const contacto = await getPacienteContactoById(pool, pacienteId);
+  const contacto = await getPacienteContactoById(pacienteId);
 
   if (!contacto) {
     throw new DomainError("Paciente no encontrado", 404);

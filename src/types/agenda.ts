@@ -13,7 +13,6 @@ export interface GetTurnosDisponiblesParams {
   nutricionistaId: number;
   fecha: string; // YYYY-MM-DD
   dayName: string; // lunes, martes, etc.
-  estrategia?: string;
   intervalo?: string;
 }
 

@@ -15,7 +15,7 @@ import { parseDateQuery } from "../utils/dateUtils";
 
 export const getTurnosDisponibles = async (req: Request, res: Response) => {
   const { nutricionistaId } = req.params;
-  const { fecha, estrategia, intervalo } = req.query;
+  const { fecha, intervalo } = req.query;
 
   const nutricionistaIdNum = Number(nutricionistaId);
   if (Number.isNaN(nutricionistaIdNum)) {
@@ -34,7 +34,6 @@ export const getTurnosDisponibles = async (req: Request, res: Response) => {
       nutricionistaId: nutricionistaIdNum,
       fecha: fecha as string,
       dayName: parsedDate.dayName,
-      estrategia: typeof estrategia === "string" ? estrategia : undefined,
       intervalo: typeof intervalo === "string" ? intervalo : undefined,
     });
 

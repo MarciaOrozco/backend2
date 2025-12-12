@@ -23,7 +23,6 @@ import {
   crearPacienteManual,
   getPacienteContactoById,
 } from "../repositories/pacienteRepository";
-import { pool } from "../config/db";
 import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
 import { generateInvitationToken } from "../utils/tokenUtils";
 import { enviarInvitacionRegistroPaciente } from "./notificacionService";
@@ -191,18 +190,14 @@ export const getPacientePerfilParaNutricionista = async (
     userNutricionistaId?: number | null;
   }
 ) => {
-  if (context.userRol === "nutricionista") {
-    await ensureNutricionistaPropietario(
-      context.userId,
-      context.userNutricionistaId ?? nutricionistaId
-    );
-  } else if (context.userRol !== "admin") {
-    throw new DomainError("No autorizado", 403);
-  }
+  await ensureNutricionistaPropietario(
+    context.userId,
+    context.userNutricionistaId ?? nutricionistaId
+  );
 
   await assertVinculoActivo(pacienteId, nutricionistaId);
 
-  const contacto = await getPacienteContactoById(pool, pacienteId);
+  const contacto = await getPacienteContactoById(pacienteId);
   if (!contacto) {
     throw new DomainError("Paciente no encontrado", 404);
   }

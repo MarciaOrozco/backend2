@@ -96,8 +96,8 @@ interface PacienteContactoRow extends RowDataPacket {
 }
 
 export const getPacienteContactoById = async (
-  client: Pool | PoolConnection,
-  pacienteId: number
+  pacienteId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<PacienteContactoRow | null> => {
   const [rows] = await client.query<PacienteContactoRow[]>(
     `
