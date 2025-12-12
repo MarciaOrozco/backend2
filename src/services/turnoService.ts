@@ -10,7 +10,6 @@ import {
   findTurnoById,
   findTurnoDetalleById,
   findTurnosByPacienteId,
-  insertTurnoLogEvento,
   updateTurnoEstado,
   updateTurnoFechaHoraYEstado,
 } from "../repositories/turnoRepository";
@@ -26,43 +25,47 @@ import { RangoDisponibilidad } from "../types/agenda";
 import { findDisponibilidadByNutricionistaAndDia } from "../repositories/disponibilidadRepository";
 import { GestorEventosTurno } from "../core/turno/GestorEventosTurno";
 import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener";
+import { LoggingTurnoListener } from "../core/turno/LoggingTurnoListener";
 
-import { EventoTurno } from "../types/turno";
+import { EventoTurno, EventoTurnoPayload } from "../types/turno";
 import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
+import { formatDate, formatHora } from "../utils/dateUtils";
 
 interface CreateTurnoContext {
   userRol: string;
   userId: number;
 }
+interface TurnoActionNutriContext {
+  userId: number;
+  userRol: string;
+  userNutricionistaId?: number | null;
+}
 
 const gestorEventosTurno = new GestorEventosTurno();
 const emailService = createEmailService();
 const notificadorEmailListener = new NotificadorEmailListener(emailService);
+const loggingTurnoListener = new LoggingTurnoListener();
 
-// Ejemplo de suscripción de listeners para los eventos del turno
 gestorEventosTurno.subscribe(EventoTurno.CREADO, notificadorEmailListener);
 gestorEventosTurno.subscribe(EventoTurno.CANCELADO, notificadorEmailListener);
 gestorEventosTurno.subscribe(
   EventoTurno.REPROGRAMADO,
   notificadorEmailListener
 );
+gestorEventosTurno.subscribe(EventoTurno.CREADO, loggingTurnoListener);
+gestorEventosTurno.subscribe(EventoTurno.CANCELADO, loggingTurnoListener);
+gestorEventosTurno.subscribe(EventoTurno.REPROGRAMADO, loggingTurnoListener);
 
-/**
- * Función interna que encapsula solo la creación de la fila en BD.
- * Reemplaza al viejo `crearTurnoInterno` del controller.
- */
-export const crearTurnoInterno = async (
-  payload: CreateTurnoPayload
-): Promise<number> => {
-  const turnoId = await createTurnoRepository(undefined, payload);
-  return turnoId;
+const notificarEventoTurno = async (
+  turnoId: number,
+  evento: EventoTurno,
+  payload?: EventoTurnoPayload
+): Promise<void> => {
+  const turno = await buildTurnoDominio(turnoId);
+  await gestorEventosTurno.notify(evento, turno, payload);
 };
 
-/**
- * Caso de uso completo: crear un turno desde una petición HTTP.
- * Valida rol, propietario, vínculo y dispara notificaciones.
- */
 export const createTurno = async (
   payload: CreateTurnoPayload,
   context: CreateTurnoContext
@@ -83,7 +86,7 @@ export const createTurno = async (
     throw new DomainError("No autorizado", 403);
   }
 
-  const turnoId = await crearTurnoInterno({
+  const turnoId = await createTurnoRepository({
     ...payload,
     pacienteId: pacienteIdValue,
   });
@@ -96,22 +99,6 @@ export const createTurno = async (
   const calendarData = buildCalendarDataFromTurno(turno);
 
   return { turnoId, ...calendarData };
-};
-
-const formatDate = (value: any) => {
-  if (!value) return null;
-  if (value instanceof Date) {
-    return value.toISOString().slice(0, 10);
-  }
-  if (typeof value === "string") {
-    return value.slice(0, 10);
-  }
-  return String(value);
-};
-
-const formatHora = (value: any) => {
-  if (!value) return "";
-  return value.toString().slice(0, 5);
 };
 
 const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
@@ -141,14 +128,6 @@ const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
     metodoPagoId: detalle.metodo_pago_id ?? null,
     estadoTurnoId: detalle.estado_turno_id ?? null,
   };
-};
-
-const notificarEventoTurno = async (
-  turnoId: number,
-  evento: EventoTurno
-): Promise<void> => {
-  const turno = await buildTurnoDominio(turnoId);
-  gestorEventosTurno.notify(evento, turno);
 };
 
 const mapTurnoPaciente = (row: any) => ({
@@ -190,15 +169,10 @@ export const obtenerTurnosPaciente = async (pacienteId: number) => {
   return { proximoTurno, historial };
 };
 
-interface TurnoActionContext {
-  userId: number;
-  userRol: string;
-}
-
 export const cancelarTurnoService = async (
   turnoId: number,
   motivo: string | undefined,
-  context: TurnoActionContext
+  context: CreateTurnoContext
 ): Promise<void> => {
   const turno = await findTurnoById(turnoId);
   if (!turno) {
@@ -217,8 +191,7 @@ export const cancelarTurnoService = async (
     motivo ?? "No indicado"
   }`;
 
-  await insertTurnoLogEvento(turnoId, mensaje);
-  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO, { mensaje });
 };
 
 export const cancelarTurnoNutricionistaService = async (
@@ -248,14 +221,8 @@ export const cancelarTurnoNutricionistaService = async (
   const mensaje = `Turno cancelado por el profesional. Motivo: ${
     motivo ?? "Sin detalle"
   }`;
-  await insertTurnoLogEvento(turnoId, mensaje);
-  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO, { mensaje });
 };
-
-interface TurnoActionContext {
-  userId: number;
-  userRol: string;
-}
 
 const horaDentroDeRangos = (
   hora: string,
@@ -273,7 +240,7 @@ export const reprogramarTurnoService = async (
   turnoId: number,
   nuevaFecha: string,
   nuevaHora: string,
-  context: TurnoActionContext
+  context: CreateTurnoContext
 ): Promise<{ calendarLink: string | null; icsContent: string | null }> => {
   if (context.userRol !== "paciente") {
     throw new DomainError("No autorizado", 403);
@@ -320,18 +287,13 @@ export const reprogramarTurnoService = async (
 
   await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
 
-  await insertTurnoLogEvento(turnoId, "Turno reprogramado por el paciente");
-  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
+  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO, {
+    mensaje: "Turno reprogramado por el paciente",
+  });
 
   const turnoActualizado = await buildTurnoDominio(turnoId);
   return buildCalendarDataFromTurno(turnoActualizado);
 };
-
-interface TurnoActionNutriContext {
-  userId: number;
-  userRol: string;
-  userNutricionistaId?: number | null;
-}
 
 export const reprogramarTurnoNutricionistaService = async (
   turnoId: number,
@@ -385,6 +347,7 @@ export const reprogramarTurnoNutricionistaService = async (
   }
 
   await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
-  await insertTurnoLogEvento(turnoId, "Turno reprogramado por el profesional");
-  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
+  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO, {
+    mensaje: "Turno reprogramado por el profesional",
+  });
 };

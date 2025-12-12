@@ -20,9 +20,9 @@ import {
 import { pool } from "../config/db";
 import { toDateISO } from "../utils/dateUtils";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
-import { crearTurnoInterno } from "./turnoService";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { ConsultaPdfExporter } from "./export/ConsultaPdfExporter";
+import { createTurno } from "../repositories/turnoRepository";
 
 const ALLOWED_ESTADOS = new Set(["borrador", "guardada", "cerrada"]);
 const ALLOWED_VISIBILIDAD = new Set(["paciente", "profesional"]);
@@ -203,11 +203,7 @@ export const crearConsultaService = async (
 
   await assertVinculoActivo(pacienteId, nutricionistaId);
 
-  const consultaId = await insertConsulta(
-    pool,
-    pacienteId,
-    nutricionistaId
-  );
+  const consultaId = await insertConsulta(pool, pacienteId, nutricionistaId);
 
   return { consultaId };
 };
@@ -449,7 +445,7 @@ export const programarProximaCitaService = async (
     metodoPagoId,
   };
 
-  const turnoId = await crearTurnoInterno(turnoPayload);
+  const turnoId = await createTurno(turnoPayload);
   await vincularPacienteProfesional(turnoId);
 
   return { turnoId };

@@ -99,8 +99,8 @@ export const findTurnosActivosByNutricionistaAndFecha = async (
  * pero si querés que arranque como confirmado podés cambiarlo a 2.
  */
 export const createTurno = async (
-  client: Pool | PoolConnection = pool,
-  payload: CreateTurnoPayload
+  payload: CreateTurnoPayload,
+  client: Pool | PoolConnection = pool
 ): Promise<number> => {
   const [result] = await client.query<ResultSetHeader>(
     `

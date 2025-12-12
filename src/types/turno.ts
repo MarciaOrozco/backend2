@@ -39,3 +39,7 @@ export enum EventoTurno {
   CANCELADO = "CANCELADO",
   REPROGRAMADO = "REPROGRAMADO",
 }
+
+export interface EventoTurnoPayload {
+  mensaje?: string;
+}

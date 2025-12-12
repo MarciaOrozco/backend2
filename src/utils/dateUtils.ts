@@ -1,5 +1,3 @@
-// utils/dateUtils.ts
-
 /**
  * Parsea una fecha en formato YYYY-MM-DD y retorna un objeto Date
  * @returns Date válido o null si la fecha es inválida
@@ -35,10 +33,6 @@ export const getDayName = (date: Date): string => {
   return date.toLocaleDateString("es-ES", { weekday: "long" }).toLowerCase();
 };
 
-/**
- * Valida y parsea una fecha desde query string
- * @returns { date, dayName } o null si es inválida
- */
 export const parseDateQuery = (
   fecha: unknown
 ): { date: Date; dayName: string } | null => {
@@ -76,4 +70,20 @@ export const toDateISO = (value: any): string | null => {
     }
   } catch {}
   return null;
+};
+
+export const formatDate = (value: any) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+  return String(value);
+};
+
+export const formatHora = (value: any) => {
+  if (!value) return "";
+  return value.toString().slice(0, 5);
 };

@@ -1,13 +1,19 @@
 import type { EmailService } from "../../services/EmailService";
 import { Turno } from "../../types/turno";
 import { EventoTurno } from "../../types/turno";
+import type { EventoTurnoPayload } from "../../types/turno";
 import type { IListenerTurno } from "./IListenerTurno";
 import { nombreCompleto } from "../../types/turno";
 
 export class NotificadorEmailListener implements IListenerTurno {
   constructor(private readonly emailService: EmailService) {}
 
-  update(turno: Turno, evento: EventoTurno): void {
+  // Ignora payload extra por ahora; mantiene contrato para otros listeners.
+  update(
+    turno: Turno,
+    evento: EventoTurno,
+    _payload?: EventoTurnoPayload
+  ): void {
     const { subject, body } = this.buildMessage(turno, evento);
 
     const destinatarios = [

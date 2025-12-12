@@ -1,4 +1,4 @@
-import type { EventoTurno } from "../../types/turno";
+import type { EventoTurno, EventoTurnoPayload } from "../../types/turno";
 import type { IListenerTurno } from "./IListenerTurno";
 import type { Turno } from "../../types/turno";
 
@@ -27,10 +27,27 @@ export class GestorEventosTurno {
     }
   }
 
-  notify(evento: EventoTurno, turno: Turno): void {
+  async notify(
+    evento: EventoTurno,
+    turno: Turno,
+    payload?: EventoTurnoPayload
+  ): Promise<void> {
     const listenersEvento = this.listeners.get(evento);
     if (!listenersEvento || !listenersEvento.length) return;
 
-    listenersEvento.forEach((listener) => listener.update(turno, evento));
+    const ejecuciones = listenersEvento.map((listener) =>
+      Promise.resolve(listener.update(turno, evento, payload)).catch(
+        (error) => {
+          console.error("Error al notificar evento de turno", {
+            error,
+            evento,
+            listener: listener.constructor?.name ?? "desconocido",
+            turnoId: turno.id,
+          });
+        }
+      )
+    );
+
+    await Promise.all(ejecuciones);
   }
 }
