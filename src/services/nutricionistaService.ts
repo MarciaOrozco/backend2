@@ -26,7 +26,10 @@ import {
 } from "../repositories/vinculoRepository";
 import { findUsuarioByEmail } from "../repositories/usuarioRepository";
 import { findRolIdByNombre } from "../repositories/rolRepository";
-import { getPacienteContactoById } from "../repositories/pacienteRepository";
+import {
+  crearPacienteManual,
+  getPacienteContactoById,
+} from "../repositories/pacienteRepository";
 import { findEstadoRegistroIdByNombre } from "../repositories/estadoRegistroRepository";
 import { insertConsulta } from "../repositories/consultaRepository";
 import { pool } from "../config/db";
@@ -255,7 +258,6 @@ interface AgregarPacienteManualContext {
   userNutricionistaId?: number | null;
 }
 
-// !!!!
 export const agregarPacienteManual = async (
   nutricionistaId: number,
   payload: { nombre: string; apellido: string; email: string },
@@ -264,199 +266,54 @@ export const agregarPacienteManual = async (
   await ensureNutricionistaPropietario(context.userId, nutricionistaId);
 
   const emailNormalizado = validateAndNormalizeEmail(payload.email);
-
   const { token: tokenInvitacion, expiresAt: fechaExpiracion } =
     generateInvitationToken(7);
 
-  const connection = await pool.getConnection();
+  const resultado = await crearPacienteManual({
+    nombre: payload.nombre.trim(),
+    apellido: payload.apellido.trim(),
+    email: emailNormalizado,
+    tokenInvitacion,
+    fechaExpiracion,
+    nutricionistaId,
+  });
 
-  try {
-    await connection.beginTransaction();
+  const registroLink = buildRegistroLink(emailNormalizado, tokenInvitacion);
 
-    const rolPacienteId =
-      (await findRolIdByNombre(connection, "paciente")) ??
-      (() => {
-        throw new DomainError("Rol paciente no configurado", 500);
-      })();
-
-    const estadoPendienteId =
-      (await findEstadoRegistroIdByNombre(connection, "pendiente")) ??
-      (() => {
-        throw new DomainError(
-          "Estado de registro 'pendiente' no configurado",
-          500
-        );
-      })();
-
-    const usuarioExistente = await findUsuarioByEmail(
-      connection,
-      emailNormalizado
-    );
-
-    let usuarioId: number;
-
-    if (usuarioExistente) {
-      usuarioId = Number(usuarioExistente.usuario_id);
-
-      // Si no es paciente, actualiza el rol
-      if (
-        usuarioExistente.rol_id == null ||
-        Number(usuarioExistente.rol_id) !== rolPacienteId
-      ) {
-        await connection.query(
-          `UPDATE usuario SET rol_id = ? WHERE usuario_id = ?`,
-          [rolPacienteId, usuarioId]
-        );
-      }
-
-      await connection.query(
-        `UPDATE usuario SET nombre = ?, apellido = ? WHERE usuario_id = ?`,
-        [payload.nombre.trim(), payload.apellido.trim(), usuarioId]
-      );
-    } else {
-      const [result]: any = await connection.query(
-        `
-          INSERT INTO usuario (nombre, apellido, email, password, telefono, fecha_registro, rol_id)
-          VALUES (?, ?, ?, ?, NULL, NOW(), ?)
-        `,
-        [
-          payload.nombre.trim(),
-          payload.apellido.trim(),
-          emailNormalizado,
-          "",
-          rolPacienteId,
-        ]
-      );
-      usuarioId = Number(result.insertId);
-    }
-
-    // Busca paciente vinculado al usuario
-    const [pacRows]: any = await connection.query(
-      `
-        SELECT p.paciente_id, er.nombre AS estado_registro
-        FROM paciente p
-        LEFT JOIN estado_registro er ON p.estado_registro_id = er.estado_registro_id
-        WHERE p.usuario_id = ?
-        LIMIT 1
-      `,
-      [usuarioId]
-    );
-
-    let pacienteId: number;
-
-    if (pacRows.length) {
-      const estadoActual = pacRows[0].estado_registro
-        ? String(pacRows[0].estado_registro).toLowerCase()
-        : null;
-
-      if (estadoActual && estadoActual !== "pendiente") {
-        throw new DomainError("Paciente ya registrado", 409);
-      }
-
-      pacienteId = Number(pacRows[0].paciente_id);
-
-      await connection.query(
-        `
-          UPDATE paciente
-          SET
-            estado_registro_id = ?,
-            fecha_invitacion = NOW(),
-            fecha_expiracion = ?,
-            token_invitacion = ?,
-            usuario_id = ?
-          WHERE paciente_id = ?
-        `,
-        [
-          estadoPendienteId,
-          fechaExpiracion,
-          tokenInvitacion,
-          usuarioId,
-          pacienteId,
-        ]
-      );
-    } else {
-      const [pacienteResult]: any = await connection.query(
-        `
-          INSERT INTO paciente (
-            usuario_id,
-            estado_registro_id,
-            fecha_invitacion,
-            fecha_expiracion,
-            token_invitacion
-          )
-          VALUES (?, ?, NOW(), ?, ?)
-        `,
-        [usuarioId, estadoPendienteId, fechaExpiracion, tokenInvitacion]
-      );
-
-      pacienteId = Number(pacienteResult.insertId);
-    }
-
-    // Relación paciente-profesional
-    const existeRelacion = await existsRelacionPacienteProfesional(
-      connection,
-      pacienteId,
-      nutricionistaId
-    );
-
-    if (!existeRelacion) {
-      await insertRelacionPacienteProfesional(
-        connection,
-        pacienteId,
-        nutricionistaId
-      );
-    }
-
-    // Crear consulta temporal en borrador
-    const consultaTemporalId = await insertConsulta(
-      connection,
-      pacienteId,
-      nutricionistaId
-    );
-
-    await connection.commit();
-
-    const registroLink = buildRegistroLink(emailNormalizado, tokenInvitacion);
-
-    void emailService
-      .sendEmail({
-        to: emailNormalizado,
-        subject: "Te invitaron a registrarte en Nutrito",
-        body: `Hola ${
-          payload.nombre
-        },\n\n${"Tu nutricionista te invitó a registrarte para ver tus planes y turnos."}\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
-      })
-      .catch((error) => {
-        console.error("No se pudo enviar invitación de registro al paciente", {
-          error,
-          email: emailNormalizado,
-          pacienteId,
-        });
-      });
-
-    return {
-      paciente: {
-        pacienteId,
-        usuarioId,
-        nombre: payload.nombre.trim(),
-        apellido: payload.apellido.trim(),
+  void emailService
+    .sendEmail({
+      to: emailNormalizado,
+      subject: "Te invitaron a registrarte en Nutrito",
+      body: `Hola ${
+        payload.nombre
+      },\n\nTu nutricionista te invitó a registrarte para ver tus planes y turnos.\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
+    })
+    .catch((error) => {
+      console.error("No se pudo enviar invitación de registro al paciente", {
+        error,
         email: emailNormalizado,
-        estadoRegistro: "pendiente",
-        estadoRegistroLabel: "No registrado",
-        invitacionEnviada: true,
-        registroLink,
-      },
-      consultaTemporal: {
-        consultaId: consultaTemporalId,
-        pacienteId,
-        nutricionistaId,
-        estado: "borrador",
-      },
-    };
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+        pacienteId: resultado.pacienteId,
+      });
+    });
+
+  // 5. Retornar resultado
+  return {
+    paciente: {
+      pacienteId: resultado.pacienteId,
+      usuarioId: resultado.usuarioId,
+      nombre: payload.nombre.trim(),
+      apellido: payload.apellido.trim(),
+      email: emailNormalizado,
+      estadoRegistro: "pendiente",
+      estadoRegistroLabel: "No registrado",
+      invitacionEnviada: true,
+      registroLink,
+    },
+    consultaTemporal: {
+      consultaId: resultado.consultaTemporalId,
+      pacienteId: resultado.pacienteId,
+      nutricionistaId,
+      estado: "borrador",
+    },
+  };
 };

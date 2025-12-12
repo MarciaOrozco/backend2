@@ -1,4 +1,14 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import { pool } from "../config/db";
+import { findRolIdByNombre } from "./rolRepository";
+import { findEstadoRegistroIdByNombre } from "./estadoRegistroRepository";
+import { findUsuarioByEmail } from "./usuarioRepository";
+import { DomainError } from "../types/errors";
+import {
+  existsRelacionPacienteProfesional,
+  insertRelacionPacienteProfesional,
+} from "./vinculoRepository";
+import { insertConsulta } from "./consultaRepository";
 
 interface PacienteRegistroRow extends RowDataPacket {
   paciente_id: number;
@@ -165,4 +175,175 @@ export const getPlanesByPaciente = async (
   );
 
   return rows;
+};
+interface CrearPacienteManualData {
+  nombre: string;
+  apellido: string;
+  email: string;
+  tokenInvitacion: string;
+  fechaExpiracion: Date;
+  nutricionistaId: number;
+}
+
+interface CrearPacienteManualResult {
+  pacienteId: number;
+  usuarioId: number;
+  consultaTemporalId: number;
+}
+
+export const crearPacienteManual = async (
+  data: CrearPacienteManualData
+): Promise<CrearPacienteManualResult> => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. Obtener IDs
+    const rolPacienteId = await findRolIdByNombre(connection, "paciente");
+    const estadoPendienteId = await findEstadoRegistroIdByNombre(
+      connection,
+      "pendiente"
+    );
+
+    // 2. Verificar si usuario existe
+    const usuarioExistente = await findUsuarioByEmail(connection, data.email);
+
+    let usuarioId: number;
+
+    if (usuarioExistente) {
+      usuarioId = Number(usuarioExistente.usuario_id);
+
+      // Si no es paciente, actualiza el rol
+      if (
+        usuarioExistente.rol_id == null ||
+        Number(usuarioExistente.rol_id) !== rolPacienteId
+      ) {
+        await connection.query(
+          `UPDATE usuario SET rol_id = ? WHERE usuario_id = ?`,
+          [rolPacienteId, usuarioId]
+        );
+      }
+
+      // Actualizar nombre y apellido
+      await connection.query(
+        `UPDATE usuario SET nombre = ?, apellido = ? WHERE usuario_id = ?`,
+        [data.nombre, data.apellido, usuarioId]
+      );
+    } else {
+      // Crear nuevo usuario
+      const [result]: any = await connection.query(
+        `
+          INSERT INTO usuario (nombre, apellido, email, password, telefono, fecha_registro, rol_id)
+          VALUES (?, ?, ?, ?, NULL, NOW(), ?)
+        `,
+        [data.nombre, data.apellido, data.email, "", rolPacienteId]
+      );
+      usuarioId = Number(result.insertId);
+    }
+
+    // 3. Buscar o crear paciente
+    const [pacRows]: any = await connection.query(
+      `
+        SELECT p.paciente_id, er.nombre AS estado_registro
+        FROM paciente p
+        LEFT JOIN estado_registro er ON p.estado_registro_id = er.estado_registro_id
+        WHERE p.usuario_id = ?
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    let pacienteId: number;
+
+    if (pacRows.length) {
+      const estadoActual = pacRows[0].estado_registro
+        ? String(pacRows[0].estado_registro).toLowerCase()
+        : null;
+
+      if (estadoActual && estadoActual !== "pendiente") {
+        throw new DomainError("Paciente ya registrado", 409);
+      }
+
+      pacienteId = Number(pacRows[0].paciente_id);
+
+      // Actualizar paciente existente
+      await connection.query(
+        `
+          UPDATE paciente
+          SET
+            estado_registro_id = ?,
+            fecha_invitacion = NOW(),
+            fecha_expiracion = ?,
+            token_invitacion = ?,
+            usuario_id = ?
+          WHERE paciente_id = ?
+        `,
+        [
+          estadoPendienteId,
+          data.fechaExpiracion,
+          data.tokenInvitacion,
+          usuarioId,
+          pacienteId,
+        ]
+      );
+    } else {
+      // Crear nuevo paciente
+      const [pacienteResult]: any = await connection.query(
+        `
+          INSERT INTO paciente (
+            usuario_id,
+            estado_registro_id,
+            fecha_invitacion,
+            fecha_expiracion,
+            token_invitacion
+          )
+          VALUES (?, ?, NOW(), ?, ?)
+        `,
+        [
+          usuarioId,
+          estadoPendienteId,
+          data.fechaExpiracion,
+          data.tokenInvitacion,
+        ]
+      );
+
+      pacienteId = Number(pacienteResult.insertId);
+    }
+
+    // 4. Crear relación paciente-profesional si no existe
+    const existeRelacion = await existsRelacionPacienteProfesional(
+      connection,
+      pacienteId,
+      data.nutricionistaId
+    );
+
+    if (!existeRelacion) {
+      await insertRelacionPacienteProfesional(
+        connection,
+        pacienteId,
+        data.nutricionistaId
+      );
+    }
+
+    // 5. Crear consulta temporal en borrador
+    const consultaTemporalId = await insertConsulta(
+      connection,
+      pacienteId,
+      data.nutricionistaId
+    );
+
+    await connection.commit();
+
+    return {
+      pacienteId,
+      usuarioId,
+      consultaTemporalId,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
