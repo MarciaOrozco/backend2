@@ -326,11 +326,11 @@ export const insertTurnoLogEvento = async (
 };
 
 export const existsTurnoActivoEnHorarioExcepto = async (
-  client: Pool | PoolConnection = pool,
   nutricionistaId: number,
   fecha: string,
   hora: string,
-  turnoIdExcluir: number
+  turnoIdExcluir: number,
+  client: Pool | PoolConnection = pool
 ): Promise<boolean> => {
   const [rows] = await client.query<RowDataPacket[]>(
     `
@@ -350,11 +350,11 @@ export const existsTurnoActivoEnHorarioExcepto = async (
 };
 
 export const updateTurnoFechaHoraYEstado = async (
-  client: Pool | PoolConnection = pool,
   turnoId: number,
   fecha: string,
   hora: string,
-  estadoTurnoId: number
+  estadoTurnoId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<void> => {
   await client.query(
     `

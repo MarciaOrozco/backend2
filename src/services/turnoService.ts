@@ -279,29 +279,23 @@ export const reprogramarTurnoService = async (
     throw new DomainError("No autorizado", 403);
   }
 
-  // 1) Buscar turno
   const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
   }
 
-  // 2) Verificar que el usuario sea el paciente dueño
   await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
 
-  // 3) Validar fecha
   const targetDate = new Date(nuevaFecha);
   if (Number.isNaN(targetDate.getTime())) {
     throw new DomainError("Fecha inválida", 400);
   }
 
-  // 4) Obtener día de la semana en español (coherente con getTurnosDisponibles)
   const diaSemana = targetDate
     .toLocaleDateString("es-ES", { weekday: "long" })
     .toLowerCase();
 
-  // 5) Verificar disponibilidad del profesional ese día
   const rangos = await findDisponibilidadByNutricionistaAndDia(
-    pool,
     turno.nutricionista_id,
     diaSemana
   );
@@ -313,9 +307,7 @@ export const reprogramarTurnoService = async (
     );
   }
 
-  // 6) Verificar que no haya otro turno activo en ese horario
   const ocupado = await existsTurnoActivoEnHorarioExcepto(
-    pool,
     turno.nutricionista_id,
     nuevaFecha,
     nuevaHora,
@@ -326,10 +318,8 @@ export const reprogramarTurnoService = async (
     throw new DomainError("El horario solicitado ya está reservado", 409);
   }
 
-  // 7) Actualizar turno
-  await updateTurnoFechaHoraYEstado(pool, turnoId, nuevaFecha, nuevaHora, 2);
+  await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
 
-  // 8) Log
   await insertTurnoLogEvento(turnoId, "Turno reprogramado por el paciente");
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 
@@ -349,23 +339,17 @@ export const reprogramarTurnoNutricionistaService = async (
   nuevaHora: string,
   context: TurnoActionNutriContext
 ): Promise<void> => {
-  if (context.userRol !== "nutricionista" && context.userRol !== "admin") {
-    throw new DomainError("No autorizado", 403);
-  }
-
   const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
   }
 
-  if (context.userRol === "nutricionista") {
-    const asociado = await ensureNutricionistaPropietario(
-      context.userId,
-      context.userNutricionistaId ?? turno.nutricionista_id
-    );
-    if (Number(turno.nutricionista_id) !== Number(asociado)) {
-      throw new DomainError("No autorizado", 403);
-    }
+  const asociado = await ensureNutricionistaPropietario(
+    context.userId,
+    context.userNutricionistaId ?? turno.nutricionista_id
+  );
+  if (Number(turno.nutricionista_id) !== Number(asociado)) {
+    throw new DomainError("No autorizado", 403);
   }
 
   const targetDate = new Date(nuevaFecha);
@@ -378,7 +362,6 @@ export const reprogramarTurnoNutricionistaService = async (
     .toLowerCase();
 
   const rangos = await findDisponibilidadByNutricionistaAndDia(
-    pool,
     turno.nutricionista_id,
     diaSemana
   );
@@ -391,7 +374,6 @@ export const reprogramarTurnoNutricionistaService = async (
   }
 
   const ocupado = await existsTurnoActivoEnHorarioExcepto(
-    pool,
     turno.nutricionista_id,
     nuevaFecha,
     nuevaHora,
@@ -402,7 +384,7 @@ export const reprogramarTurnoNutricionistaService = async (
     throw new DomainError("El horario solicitado ya está reservado", 409);
   }
 
-  await updateTurnoFechaHoraYEstado(pool, turnoId, nuevaFecha, nuevaHora, 2);
+  await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
   await insertTurnoLogEvento(turnoId, "Turno reprogramado por el profesional");
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 };

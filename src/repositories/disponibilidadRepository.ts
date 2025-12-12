@@ -10,9 +10,9 @@ interface RangoDisponibilidadRow extends RowDataPacket {
 }
 
 export const findDisponibilidadByNutricionistaAndDia = async (
-  client: Pool | PoolConnection = pool,
   nutricionistaId: number,
-  dayName: string
+  dayName: string,
+  client: Pool | PoolConnection = pool
 ): Promise<RangoDisponibilidad[]> => {
   const params = [nutricionistaId, dayName.toLowerCase()];
   try {
