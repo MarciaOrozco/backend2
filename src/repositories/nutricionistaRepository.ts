@@ -239,8 +239,8 @@ export const findResenasByNutricionista = async (
 };
 
 export const findPacientesVinculados = async (
-  client: Pool | PoolConnection = pool,
-  nutricionistaId: number
+  nutricionistaId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<PacienteVinculadoRow[]> => {
   const [rows] = await client.query<PacienteVinculadoRow[]>(
     `

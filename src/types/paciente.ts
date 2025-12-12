@@ -24,3 +24,9 @@ export interface PlanPacienteResumen {
   titulo: string | null;
   notas: string | null;
 }
+
+export interface AgregarPacienteManualContext {
+  userId: number;
+  userRol: string;
+  userNutricionistaId?: number | null;
+}

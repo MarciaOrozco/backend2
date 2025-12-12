@@ -3,7 +3,6 @@ import type {
   NutricionistaCardDTO,
   NutricionistaDetalleDTO,
 } from "../types/nutricionista";
-
 import {
   findNutricionistaBaseById,
   findEspecialidadesByNutricionista,
@@ -19,27 +18,16 @@ import { findTurnosActivosByNutricionista } from "../repositories/turnoRepositor
 import { toDateISO } from "../utils/dateUtils";
 import { ensureNutricionistaPropietario } from "../utils/vinculoUtils";
 import { DomainError } from "../types/errors";
-import {
-  existsRelacionPacienteProfesional,
-  insertRelacionPacienteProfesional,
-  assertVinculoActivo,
-} from "../repositories/vinculoRepository";
-import { findUsuarioByEmail } from "../repositories/usuarioRepository";
-import { findRolIdByNombre } from "../repositories/rolRepository";
+import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import {
   crearPacienteManual,
   getPacienteContactoById,
 } from "../repositories/pacienteRepository";
-import { findEstadoRegistroIdByNombre } from "../repositories/estadoRegistroRepository";
-import { insertConsulta } from "../repositories/consultaRepository";
 import { pool } from "../config/db";
-import { createEmailService } from "./EmailService";
-import crypto from "crypto";
 import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
 import { generateInvitationToken } from "../utils/tokenUtils";
 import { enviarInvitacionRegistroPaciente } from "./notificacionService";
-
-const emailService = createEmailService();
+import { AgregarPacienteManualContext } from "../types/paciente";
 
 export const getNutricionistas = async (
   filters: NutricionistaFilters
@@ -117,17 +105,15 @@ export const getPacientesVinculados = async (
   context: {
     userId: number;
     userRol: string;
-    userNutricionistaId?: number | null;
+    userNutricionistaId: number;
   }
 ) => {
-  if (context.userRol === "nutricionista") {
-    await ensureNutricionistaPropietario(
-      context.userId,
-      context.userNutricionistaId ?? nutricionistaId
-    );
-  }
+  await ensureNutricionistaPropietario(
+    context.userId,
+    context.userNutricionistaId
+  );
 
-  const rows = await findPacientesVinculados(undefined, nutricionistaId);
+  const rows = await findPacientesVinculados(nutricionistaId);
 
   return rows.map((row) => {
     const estado = row.estado_registro
@@ -162,19 +148,12 @@ export const getTurnosNutricionista = async (
     userNutricionistaId?: number | null;
   }
 ) => {
-  if (context.userRol === "nutricionista") {
-    await ensureNutricionistaPropietario(
-      context.userId,
-      context.userNutricionistaId ?? nutricionistaId
-    );
-  } else if (context.userRol !== "admin") {
-    throw new DomainError("No autorizado", 403);
-  }
-
-  const rows = await findTurnosActivosByNutricionista(
-    undefined,
-    nutricionistaId
+  await ensureNutricionistaPropietario(
+    context.userId,
+    context.userNutricionistaId ?? nutricionistaId
   );
+
+  const rows = await findTurnosActivosByNutricionista(nutricionistaId);
 
   const now = new Date();
   const turnos = rows
@@ -237,12 +216,6 @@ export const getPacientePerfilParaNutricionista = async (
     ciudad: contacto.ciudad,
   };
 };
-
-interface AgregarPacienteManualContext {
-  userId: number;
-  userRol: string;
-  userNutricionistaId?: number | null;
-}
 
 export const agregarPacienteManual = async (
   nutricionistaId: number,

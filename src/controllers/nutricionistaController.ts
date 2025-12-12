@@ -35,12 +35,18 @@ export const getNutricionistas = async (req: Request, res: Response) => {
 export const getPacientesVinculados = async (req: Request, res: Response) => {
   const nutricionistaId = Number(req.params.nutricionistaId);
 
-  if (Number.isNaN(nutricionistaId)) {
+  if (Number.isNaN(nutricionistaId) || nutricionistaId == undefined) {
     return res.status(400).json({ error: "nutricionistaId inválido" });
   }
 
   if (!req.user) {
     return res.status(401).json({ error: "No autenticado" });
+  }
+
+  if (!req.user.nutricionistaId) {
+    return res
+      .status(403)
+      .json({ error: "Usuario no asociado a nutricionista" });
   }
 
   try {

@@ -88,7 +88,6 @@ export const createTurno = async (
     pacienteId: pacienteIdValue,
   });
 
-  //   await notificarTurnoConfirmado(turnoId);
   await vincularPacienteProfesional(turnoId);
 
   await notificarEventoTurno(turnoId, EventoTurno.CREADO);
@@ -196,42 +195,60 @@ interface TurnoActionContext {
   userRol: string;
 }
 
-/**
- * Cancelación de turno por paciente.
- * - Verifica que el turno exista
- * - Verifica que el usuario sea el paciente dueño
- * - Marca el turno como cancelado (estado 3)
- * - Inserta un log de evento
- */
 export const cancelarTurnoService = async (
   turnoId: number,
   motivo: string | undefined,
   context: TurnoActionContext
 ): Promise<void> => {
-  if (context.userRol !== "paciente") {
-    throw new DomainError("No autorizado", 403);
-  }
-
-  const turno = await findTurnoById(pool, turnoId);
+  const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
   }
 
-  // Verifica que el paciente del token sea el mismo del turno
   await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
 
-  // Si ya está cancelado, podrías devolver ok o lanzar error; acá lo dejamos idempotente
   if (turno.estado_turno_id === 3) {
-    return;
+    throw new DomainError("El turno ya se encuentra cancelado", 400);
   }
 
-  await updateTurnoEstado(pool, turnoId, 3);
+  await updateTurnoEstado(turnoId, 3);
 
   const mensaje = `Turno cancelado por el paciente. Motivo: ${
     motivo ?? "No indicado"
   }`;
 
-  await insertTurnoLogEvento(pool, turnoId, mensaje);
+  await insertTurnoLogEvento(turnoId, mensaje);
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
+};
+
+export const cancelarTurnoNutricionistaService = async (
+  turnoId: number,
+  motivo: string | undefined,
+  context: TurnoActionNutriContext
+): Promise<void> => {
+  const turno = await findTurnoById(turnoId);
+  if (!turno) {
+    throw new DomainError("Turno no encontrado", 404);
+  }
+
+  const asociado = await ensureNutricionistaPropietario(
+    context.userId,
+    context.userNutricionistaId ?? turno.nutricionista_id
+  );
+  if (Number(turno.nutricionista_id) !== Number(asociado)) {
+    throw new DomainError("No autorizado", 403);
+  }
+
+  if (turno.estado_turno_id === 3) {
+    throw new DomainError("El turno ya se encuentra cancelado", 400);
+  }
+
+  await updateTurnoEstado(turnoId, 3);
+
+  const mensaje = `Turno cancelado por el profesional. Motivo: ${
+    motivo ?? "Sin detalle"
+  }`;
+  await insertTurnoLogEvento(turnoId, mensaje);
   await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
 };
 
@@ -263,7 +280,7 @@ export const reprogramarTurnoService = async (
   }
 
   // 1) Buscar turno
-  const turno = await findTurnoById(pool, turnoId);
+  const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
   }
@@ -313,11 +330,7 @@ export const reprogramarTurnoService = async (
   await updateTurnoFechaHoraYEstado(pool, turnoId, nuevaFecha, nuevaHora, 2);
 
   // 8) Log
-  await insertTurnoLogEvento(
-    pool,
-    turnoId,
-    "Turno reprogramado por el paciente"
-  );
+  await insertTurnoLogEvento(turnoId, "Turno reprogramado por el paciente");
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 
   const turnoActualizado = await buildTurnoDominio(turnoId);
@@ -330,43 +343,6 @@ interface TurnoActionNutriContext {
   userNutricionistaId?: number | null;
 }
 
-export const cancelarTurnoNutricionistaService = async (
-  turnoId: number,
-  motivo: string | undefined,
-  context: TurnoActionNutriContext
-): Promise<void> => {
-  if (context.userRol !== "nutricionista" && context.userRol !== "admin") {
-    throw new DomainError("No autorizado", 403);
-  }
-
-  const turno = await findTurnoById(pool, turnoId);
-  if (!turno) {
-    throw new DomainError("Turno no encontrado", 404);
-  }
-
-  if (context.userRol === "nutricionista") {
-    const asociado = await ensureNutricionistaPropietario(
-      context.userId,
-      context.userNutricionistaId ?? turno.nutricionista_id
-    );
-    if (Number(turno.nutricionista_id) !== Number(asociado)) {
-      throw new DomainError("No autorizado", 403);
-    }
-  }
-
-  if (turno.estado_turno_id === 3) {
-    throw new DomainError("El turno ya se encuentra cancelado", 400);
-  }
-
-  await updateTurnoEstado(pool, turnoId, 3);
-
-  const mensaje = `Turno cancelado por el profesional. Motivo: ${
-    motivo ?? "Sin detalle"
-  }`;
-  await insertTurnoLogEvento(pool, turnoId, mensaje);
-  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO);
-};
-
 export const reprogramarTurnoNutricionistaService = async (
   turnoId: number,
   nuevaFecha: string,
@@ -377,7 +353,7 @@ export const reprogramarTurnoNutricionistaService = async (
     throw new DomainError("No autorizado", 403);
   }
 
-  const turno = await findTurnoById(pool, turnoId);
+  const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
   }
@@ -427,10 +403,6 @@ export const reprogramarTurnoNutricionistaService = async (
   }
 
   await updateTurnoFechaHoraYEstado(pool, turnoId, nuevaFecha, nuevaHora, 2);
-  await insertTurnoLogEvento(
-    pool,
-    turnoId,
-    "Turno reprogramado por el profesional"
-  );
+  await insertTurnoLogEvento(turnoId, "Turno reprogramado por el profesional");
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO);
 };

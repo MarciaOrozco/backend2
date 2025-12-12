@@ -184,8 +184,8 @@ export const findTurnosByPacienteId = async (
 
 /** Turnos activos (1,2) de un nutricionista con datos de paciente */
 export const findTurnosActivosByNutricionista = async (
-  client: Pool | PoolConnection = pool,
-  nutricionistaId: number
+  nutricionistaId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<TurnoNutricionistaRow[]> => {
   const [rows] = await client.query<TurnoNutricionistaRow[]>(
     `
@@ -216,14 +216,9 @@ export const findTurnosActivosByNutricionista = async (
   return rows;
 };
 
-/* ──────────────────────────────────────────────
- * MÉTODOS NUEVOS PARA CANCELAR / REPROGRAMAR
- * ────────────────────────────────────────────── */
-
-/** Obtener un turno completo por id */
 export const findTurnoById = async (
-  client: Pool | PoolConnection = pool,
-  turnoId: number
+  turnoId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<TurnoRow | null> => {
   const [rows] = await client.query<TurnoRow[]>(
     `
@@ -283,9 +278,9 @@ export const findTurnoDetalleById = async (
 
 /** Actualizar solo el estado del turno (por ejemplo, cancelar = 3) */
 export const updateTurnoEstado = async (
-  client: Pool | PoolConnection = pool,
   turnoId: number,
-  nuevoEstadoId: number
+  nuevoEstadoId: number,
+  client: Pool | PoolConnection = pool
 ): Promise<void> => {
   await client.query(
     `
@@ -317,9 +312,9 @@ export const updateTurnoFechaYHora = async (
 
 /** Registrar mensajes en log_eventos */
 export const insertTurnoLogEvento = async (
-  client: Pool | PoolConnection = pool,
   turnoId: number,
-  mensaje: string
+  mensaje: string,
+  client: Pool | PoolConnection = pool
 ): Promise<void> => {
   await client.query(
     `
