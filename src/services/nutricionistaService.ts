@@ -37,23 +37,9 @@ import { createEmailService } from "./EmailService";
 import crypto from "crypto";
 import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
 import { generateInvitationToken } from "../utils/tokenUtils";
+import { enviarInvitacionRegistroPaciente } from "./notificacionService";
 
 const emailService = createEmailService();
-const FRONTEND_BASE_URL =
-  process.env.FRONTEND_BASE_URL ??
-  process.env.APP_BASE_URL ??
-  "http://localhost:5173";
-
-const buildRegistroLink = (email: string, token: string) => {
-  const params = new URLSearchParams({
-    email,
-    token,
-  });
-  return `${FRONTEND_BASE_URL.replace(
-    /\/$/,
-    ""
-  )}/register?${params.toString()}`;
-};
 
 export const getNutricionistas = async (
   filters: NutricionistaFilters
@@ -278,25 +264,14 @@ export const agregarPacienteManual = async (
     nutricionistaId,
   });
 
-  const registroLink = buildRegistroLink(emailNormalizado, tokenInvitacion);
+  void enviarInvitacionRegistroPaciente({
+    email: emailNormalizado,
+    nombre: payload.nombre,
+    tokenInvitacion,
+    fechaExpiracion,
+    pacienteId: resultado.pacienteId,
+  });
 
-  void emailService
-    .sendEmail({
-      to: emailNormalizado,
-      subject: "Te invitaron a registrarte en Nutrito",
-      body: `Hola ${
-        payload.nombre
-      },\n\nTu nutricionista te invitó a registrarte para ver tus planes y turnos.\n\nCompletá tu registro aquí: ${registroLink}\n\nEste enlace expira el ${fechaExpiracion.toLocaleDateString()}.`,
-    })
-    .catch((error) => {
-      console.error("No se pudo enviar invitación de registro al paciente", {
-        error,
-        email: emailNormalizado,
-        pacienteId: resultado.pacienteId,
-      });
-    });
-
-  // 5. Retornar resultado
   return {
     paciente: {
       pacienteId: resultado.pacienteId,
@@ -307,7 +282,6 @@ export const agregarPacienteManual = async (
       estadoRegistro: "pendiente",
       estadoRegistroLabel: "No registrado",
       invitacionEnviada: true,
-      registroLink,
     },
     consultaTemporal: {
       consultaId: resultado.consultaTemporalId,
