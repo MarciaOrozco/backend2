@@ -32,7 +32,8 @@ import { insertConsulta } from "../repositories/consultaRepository";
 import { pool } from "../config/db";
 import { createEmailService } from "./EmailService";
 import crypto from "crypto";
-import { parseDbCsv } from "../utils/stringUtils";
+import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
+import { generateInvitationToken } from "../utils/tokenUtils";
 
 const emailService = createEmailService();
 const FRONTEND_BASE_URL =
@@ -254,29 +255,18 @@ interface AgregarPacienteManualContext {
   userNutricionistaId?: number | null;
 }
 
+// !!!!
 export const agregarPacienteManual = async (
   nutricionistaId: number,
   payload: { nombre: string; apellido: string; email: string },
   context: AgregarPacienteManualContext
 ) => {
-  if (context.userRol !== "nutricionista")
-    throw new DomainError("No autorizado", 403);
-  if (
-    !context.userNutricionistaId ||
-    context.userNutricionistaId !== nutricionistaId
-  )
-    throw new DomainError("No autorizado para esta operación", 403);
+  await ensureNutricionistaPropietario(context.userId, nutricionistaId);
 
-  const emailNormalizado = String(payload.email).trim().toLowerCase();
-  const emailRegex =
-    /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+  const emailNormalizado = validateAndNormalizeEmail(payload.email);
 
-  if (!emailRegex.test(emailNormalizado)) {
-    throw new DomainError("Email inválido", 400);
-  }
-
-  const tokenInvitacion = crypto.randomBytes(24).toString("hex");
-  const fechaExpiracion = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const { token: tokenInvitacion, expiresAt: fechaExpiracion } =
+    generateInvitationToken(7);
 
   const connection = await pool.getConnection();
 

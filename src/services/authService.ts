@@ -3,7 +3,7 @@ import { pool } from "../config/db";
 
 import { DomainError } from "../types/errors";
 import { comparePassword, hashPassword } from "../utils/passwordUtils";
-import { normalizeEmail, normalizeText } from "../utils/stringUtils";
+import { validateAndNormalizeEmail, normalizeText } from "../utils/stringUtils";
 import { RegistroPacienteExistente } from "./templateRegistroPaciente/RegistroPacienteExistente";
 import { RegistroPacienteNuevo } from "./templateRegistroPaciente/RegistroPacienteNuevo";
 import { RegisterPacienteTemplateData } from "../types/registerPacienteTemplateData";
@@ -57,7 +57,7 @@ const ensureTransaction = async <T>(
 export const registerPaciente = async (
   payload: RegisterPacientePayload
 ): Promise<AuthResponse> => {
-  const email = normalizeEmail(payload.email ?? null);
+  const email = validateAndNormalizeEmail(payload.email ?? null);
   const password = payload.password;
 
   if (!email || !password) {
@@ -132,7 +132,7 @@ export const registerPaciente = async (
 export const loginUsuario = async (
   payload: LoginPayload
 ): Promise<AuthResponse> => {
-  const email = normalizeEmail(payload.email ?? null);
+  const email = validateAndNormalizeEmail(payload.email ?? null);
   const password = payload.password;
 
   if (!email || !password) {

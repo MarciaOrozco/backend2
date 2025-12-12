@@ -1,12 +1,24 @@
 import type { Request } from "express";
 
-export const normalizeEmail = (email?: string | null): string | null => {
+const EMAIL_REGEX =
+  /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+export const validateAndNormalizeEmail = (email?: string | null): string => {
   if (!email) {
-    return null;
+    throw new Error("Email es requerido");
   }
 
   const normalized = String(email).trim().toLowerCase();
-  return normalized.length ? normalized : null;
+
+  if (!normalized.length) {
+    throw new Error("Email es requerido");
+  }
+
+  if (!EMAIL_REGEX.test(normalized)) {
+    throw new Error("Email inválido");
+  }
+
+  return normalized;
 };
 
 export const normalizeText = (value?: string | null): string | null => {
