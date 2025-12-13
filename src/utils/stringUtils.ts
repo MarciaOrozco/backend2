@@ -55,3 +55,18 @@ export const parseDbCsv = (value?: unknown): string[] =>
         .map((v) => v.trim())
         .filter(Boolean)
     : [];
+export const parseJson = <T>(value: any, fallback: T): T => {
+  if (!value) return fallback;
+  if (typeof value === "object") return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch (_error) {
+    return fallback;
+  }
+};
+
+export const parseNumber = (value: any): number | undefined => {
+  if (value === null || value === undefined) return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+};

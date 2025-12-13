@@ -14,6 +14,12 @@ import {
 import { findTurnosActivosByNutricionistaAndFecha } from "../repositories/turnoRepository";
 import { ensureNutricionistaPropietario } from "../utils/vinculoUtils";
 import { pool } from "../config/db";
+import {
+  isValidTime,
+  normalizarHora,
+  toMinutes,
+  toTime,
+} from "../utils/dateUtils";
 
 const DEFAULT_INTERVAL = 30;
 const VALID_DAY_NAMES = new Set([
@@ -29,22 +35,6 @@ const VALID_DAY_NAMES = new Set([
 ]);
 
 const VALID_INTERVALS = new Set([20, 30, 60]);
-
-const toMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
-const toTime = (minutesTotal: number) => {
-  const hours = Math.floor(minutesTotal / 60);
-  const minutes = minutesTotal % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-    2,
-    "0"
-  )}`;
-};
-
-const normalizarHora = (value: string) => value.slice(0, 5);
 
 const parseInterval = (value?: string | null) => {
   if (value == null) return null;
@@ -143,8 +133,6 @@ export const getTurnosDisponibles = async (
 
   return result;
 };
-
-const isValidTime = (value: string) => /^\d{2}:\d{2}$/.test(value);
 
 export const updateDisponibilidadNutricionista = async (
   nutricionistaId: number,

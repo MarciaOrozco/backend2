@@ -87,3 +87,43 @@ export const formatHora = (value: any) => {
   if (!value) return "";
   return value.toString().slice(0, 5);
 };
+
+export const toMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+export const toTime = (minutesTotal: number) => {
+  const hours = Math.floor(minutesTotal / 60);
+  const minutes = minutesTotal % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0"
+  )}`;
+};
+
+export const normalizarHora = (value: string) => value.slice(0, 5);
+
+export const isValidTime = (value: string) => /^\d{2}:\d{2}$/.test(value);
+
+export const toDateString = (value: Date | string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString().slice(0, 10);
+};
+
+export const parseDate = (value: any): string => {
+  if (!value) return "";
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+};

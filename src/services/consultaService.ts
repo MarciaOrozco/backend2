@@ -11,8 +11,11 @@ import {
   ConsultaEvolucionRow,
   ConsultaListadoRow,
   ConsultaRow,
+  ContextoUsuario,
   DocumentoConsultaRow,
   HistorialPesoRow,
+  ListarConsultasPacienteContext,
+  RegistroEvolucion,
 } from "../interfaces/consulta";
 import {
   deleteConsultaById,
@@ -25,6 +28,7 @@ import {
   insertDocumentoConsulta,
   updateConsultaById,
 } from "../repositories/consultaRepository";
+import { DocumentoSubido } from "../interfaces/documento";
 
 const ALLOWED_ESTADOS = new Set(["borrador", "guardada", "cerrada"]);
 const ALLOWED_VISIBILIDAD = new Set(["paciente", "profesional"]);
@@ -35,11 +39,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
 ]);
-
-interface ContextoUsuario {
-  rol: string;
-  nutricionistaId?: number | null;
-}
 
 const resolveNutricionistaId = (context: ContextoUsuario): number | null => {
   if (context.rol === "nutricionista") {
@@ -124,20 +123,6 @@ const buildUpdatePayload = (body: Record<string, any>, actual: ConsultaRow) => {
 
   return payload;
 };
-
-interface ListarConsultasPacienteContext {
-  rolUsuario: string;
-  nutricionistaId?: number | null;
-}
-
-export interface RegistroEvolucion {
-  fecha_consulta: string | null;
-  peso: number | null;
-  imc: number | null;
-  cintura: number | null;
-  porcentaje_grasa: number | null;
-  meta_peso: number | null;
-}
 
 /**
  * Lista consultas de un paciente.
@@ -311,11 +296,6 @@ export const eliminarConsultaService = async (
 
   await deleteConsultaById(pool, consultaId);
 };
-
-export interface DocumentoSubido {
-  nombre: string;
-  ruta: string;
-}
 
 export const subirDocumentosConsultaService = async (
   consultaId: number,

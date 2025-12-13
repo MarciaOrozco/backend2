@@ -65,3 +65,22 @@ export interface ConsultaExportPayload {
   historialPeso: HistorialPesoRow[];
   secciones?: string[];
 }
+
+export interface ListarConsultasPacienteContext {
+  rolUsuario: string;
+  nutricionistaId?: number | null;
+}
+
+export interface RegistroEvolucion {
+  fecha_consulta: string | null;
+  peso: number | null;
+  imc: number | null;
+  cintura: number | null;
+  porcentaje_grasa: number | null;
+  meta_peso: number | null;
+}
+
+export interface ContextoUsuario {
+  rol: string;
+  nutricionistaId?: number | null;
+}

@@ -15,3 +15,8 @@ export interface CrearDocumentosContext {
   userId: number;
   userRol: string;
 }
+
+export interface DocumentoSubido {
+  nombre: string;
+  ruta: string;
+}

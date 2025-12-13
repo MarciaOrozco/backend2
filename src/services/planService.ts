@@ -33,31 +33,8 @@ import {
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { DomainError } from "../interfaces/errors";
 import { PlanPdfExporter } from "./export/PlanPdfExporter";
-
-const parseNumber = (value: any): number | undefined => {
-  if (value === null || value === undefined) return undefined;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : undefined;
-};
-
-const parseDate = (value: any): string => {
-  if (!value) return "";
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
-};
-
-const parseJson = <T>(value: any, fallback: T): T => {
-  if (!value) return fallback;
-  if (typeof value === "object") return value as T;
-  try {
-    return JSON.parse(value) as T;
-  } catch (_error) {
-    return fallback;
-  }
-};
+import { parseJson, parseNumber } from "../utils/stringUtils";
+import { parseDate } from "../utils/dateUtils";
 
 const serializeMetadata = (
   metadata: PlanMetadata,
@@ -131,23 +108,6 @@ const extractKnownTotals = (
     extras_json: Object.keys(rest).length ? JSON.stringify(rest) : null,
   };
 };
-
-const serializeMeal = (meal: PlanMeal, dayId: number) => ({
-  dia_plan_id: dayId,
-  orden: meal.order ?? null,
-  tipo_comida: meal.type ?? null,
-  titulo: meal.title ?? null,
-  descripcion: meal.description ?? null,
-  horario: meal.time ? meal.time : null,
-  calorias: meal.calories ?? null,
-  proteinas: meal.proteins ?? null,
-  carbohidratos: meal.carbs ?? null,
-  grasas: meal.fats ?? null,
-  fibra: meal.fiber ?? null,
-  alimentos_json:
-    meal.foods && meal.foods.length ? JSON.stringify(meal.foods) : null,
-  observaciones: meal.notes ?? null,
-});
 
 const mealRowToMeal = (row: any): PlanMeal => ({
   mealId: row.comida_id,
@@ -572,13 +532,6 @@ export const markPlanAsValidated = async (
   await markPlanStatus(pool, planId, status, true);
 
   return getPlanById(planId, context ?? { rol: "admin" });
-};
-
-const formatDate = (value: string | undefined | null): string => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toISOString().slice(0, 10);
 };
 
 export const exportarPlan = async (
