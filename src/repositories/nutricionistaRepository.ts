@@ -8,10 +8,10 @@ import type {
   NutricionistaFilters,
   NutricionistaRow,
   ObraSocialRow,
-  PacienteVinculadoRow,
-  ResenaRow,
 } from "../interfaces/nutricionista";
 import type { Pool, PoolConnection } from "mysql2/promise";
+import { ResenaRow } from "../interfaces/resena";
+import { PacienteVinculadoRow } from "../interfaces/vinculo";
 
 export const findNutricionistas = async (
   filters: NutricionistaFilters

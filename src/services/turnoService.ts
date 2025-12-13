@@ -32,7 +32,7 @@ import { EventoTurno, EventoTurnoPayload } from "../interfaces/turno";
 import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 import { formatDate, formatHora } from "../utils/dateUtils";
-import { TurnoContext } from "../interfaces/context";
+import { UserContext } from "../interfaces/context";
 
 const gestorEventosTurno = new GestorEventosTurno();
 const emailService = createEmailService();
@@ -60,18 +60,18 @@ const notificarEventoTurno = async (
 
 export const createTurno = async (
   payload: CreateTurnoPayload,
-  context: TurnoContext
+  context: UserContext
 ): Promise<CreateTurnoResult> => {
-  const { userRol, userId } = context;
+  const { rol, userId } = context;
   let pacienteIdValue = payload.pacienteId;
 
-  if (userRol === "paciente") {
+  if (rol === "paciente") {
     const pacienteAsociado = await ensurePacientePropietario(
       userId,
       pacienteIdValue
     );
     pacienteIdValue = pacienteAsociado;
-  } else if (userRol === "nutricionista") {
+  } else if (rol === "nutricionista") {
     await ensureNutricionistaPropietario(userId, payload.nutricionistaId);
     await assertVinculoActivo(pacienteIdValue, payload.nutricionistaId);
   } else {
@@ -120,7 +120,7 @@ export const obtenerTurnosPaciente = async (pacienteId: number) => {
 export const cancelarTurnoService = async (
   turnoId: number,
   motivo: string | undefined,
-  context: TurnoContext
+  context: UserContext
 ): Promise<void> => {
   let propietario: string = "";
   const turno = await findTurnoById(turnoId);
@@ -132,13 +132,13 @@ export const cancelarTurnoService = async (
     throw new DomainError("El turno ya se encuentra cancelado", 400);
   }
 
-  if (context.userRol === "paciente") {
+  if (context.rol === "paciente") {
     await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
     propietario = "paciente";
-  } else if (context.userRol === "nutricionista") {
+  } else if (context.rol === "nutricionista") {
     await ensureNutricionistaPropietario(
       context.userId,
-      context.userNutricionistaId ?? turno.nutricionista_id
+      context.nutricionistaId ?? turno.nutricionista_id
     );
     propietario = "nutricionista";
   } else {
@@ -158,9 +158,9 @@ export const reprogramarTurnoService = async (
   turnoId: number,
   nuevaFecha: string,
   nuevaHora: string,
-  context: TurnoContext
+  context: UserContext
 ): Promise<{ calendarLink: string | null; icsContent: string | null }> => {
-  if (context.userRol !== "paciente") {
+  if (context.rol !== "paciente") {
     throw new DomainError("No autorizado", 403);
   }
 
@@ -217,7 +217,7 @@ export const reprogramarTurnoNutricionistaService = async (
   turnoId: number,
   nuevaFecha: string,
   nuevaHora: string,
-  context: TurnoContext
+  context: UserContext
 ): Promise<void> => {
   const turno = await findTurnoById(turnoId);
   if (!turno) {
@@ -226,7 +226,7 @@ export const reprogramarTurnoNutricionistaService = async (
 
   const asociado = await ensureNutricionistaPropietario(
     context.userId,
-    context.userNutricionistaId ?? turno.nutricionista_id
+    context.nutricionistaId ?? turno.nutricionista_id
   );
   if (Number(turno.nutricionista_id) !== Number(asociado)) {
     throw new DomainError("No autorizado", 403);

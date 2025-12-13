@@ -5,12 +5,9 @@ import {
   getPacienteContactoById,
   getPlanesByPaciente,
 } from "../repositories/pacienteRepository";
-import {
-  DocumentoPaciente,
-  PacienteContacto,
-  PlanPacienteResumen,
-} from "../interfaces/paciente";
+import { PacienteContacto, PlanPacienteResumen } from "../interfaces/paciente";
 import { toDateString } from "../utils/dateUtils";
+import { DocumentoPaciente } from "../interfaces/documento";
 
 export const obtenerContactoPaciente = async (
   pacienteId: number

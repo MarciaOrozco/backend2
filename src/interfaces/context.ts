@@ -1,5 +1,8 @@
-export interface TurnoContext {
+export interface ContextoBase {
+  rol: string;
+  nutricionistaId?: number | null;
+}
+
+export interface UserContext extends ContextoBase {
   userId: number;
-  userRol: string;
-  userNutricionistaId?: number | null;
 }

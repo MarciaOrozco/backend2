@@ -25,11 +25,11 @@ export const listarConsultasPaciente = async (req: Request, res: Response) => {
   try {
     await verificarAccesoPaciente(req, pacienteId);
 
-    const rolUsuario = req.user?.rol ?? "anon";
+    const rol = req.user?.rol ?? "anon";
     const nutricionistaId = req.user?.nutricionistaId ?? null;
 
     const consultas = await listarConsultasPacienteService(pacienteId, {
-      rolUsuario,
+      rol,
       nutricionistaId,
     });
 

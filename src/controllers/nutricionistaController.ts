@@ -156,8 +156,8 @@ export const agregarPacienteManual = async (req: Request, res: Response) => {
       { nombre, apellido, email },
       {
         userId: req.user.usuarioId,
-        userRol: req.user.rol,
-        userNutricionistaId: req.user.nutricionistaId,
+        rol: req.user.rol,
+        nutricionistaId: req.user.nutricionistaId,
       }
     );
 

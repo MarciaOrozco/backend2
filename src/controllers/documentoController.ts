@@ -14,7 +14,7 @@ export const crearDocumentos = async (req: Request, res: Response) => {
     const documentos = await crearDocumentosService(
       files,
       { pacienteId: pacienteId ? Number(pacienteId) : undefined, descripcion },
-      { userId: req.user.usuarioId, userRol: req.user.rol }
+      { userId: req.user.usuarioId, rol: req.user.rol }
     );
 
     return res.status(201).json({ success: true, documentos });

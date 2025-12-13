@@ -11,10 +11,7 @@ import {
   ConsultaEvolucionRow,
   ConsultaListadoRow,
   ConsultaRow,
-  ContextoUsuario,
-  DocumentoConsultaRow,
   HistorialPesoRow,
-  ListarConsultasPacienteContext,
   RegistroEvolucion,
 } from "../interfaces/consulta";
 import {
@@ -28,7 +25,8 @@ import {
   insertDocumentoConsulta,
   updateConsultaById,
 } from "../repositories/consultaRepository";
-import { DocumentoSubido } from "../interfaces/documento";
+import { DocumentoRow, DocumentoSubido } from "../interfaces/documento";
+import { ContextoBase } from "../interfaces/context";
 
 const ALLOWED_ESTADOS = new Set(["borrador", "guardada", "cerrada"]);
 const ALLOWED_VISIBILIDAD = new Set(["paciente", "profesional"]);
@@ -40,7 +38,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpg",
 ]);
 
-const resolveNutricionistaId = (context: ContextoUsuario): number | null => {
+const resolveNutricionistaId = (context: ContextoBase): number | null => {
   if (context.rol === "nutricionista") {
     if (!context.nutricionistaId) {
       throw new DomainError("Nutricionista no registrado", 403);
@@ -131,13 +129,13 @@ const buildUpdatePayload = (body: Record<string, any>, actual: ConsultaRow) => {
  */
 export const listarConsultasPaciente = async (
   pacienteId: number,
-  context: ListarConsultasPacienteContext
+  context: ContextoBase
 ): Promise<ConsultaListadoRow[]> => {
-  const { rolUsuario, nutricionistaId } = context;
+  const { rol, nutricionistaId } = context;
 
   // Si es nutricionista, debe tener id; si no, error
   const filtroNutricionistaId =
-    rolUsuario === "nutricionista"
+    rol === "nutricionista"
       ? nutricionistaId ??
         (() => {
           throw new DomainError("Nutricionista no registrado", 403);
@@ -181,7 +179,7 @@ export const obtenerEvolucionPacienteService = async (
 
 export const crearConsultaService = async (
   pacienteId: number,
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<{ consultaId: number }> => {
   const nutricionistaId = resolveNutricionistaId(context);
   if (!nutricionistaId) {
@@ -197,7 +195,7 @@ export const crearConsultaService = async (
 
 export const obtenerConsultaService = async (
   consultaId: number,
-  context: ContextoUsuario
+  context: ContextoBase
 ) => {
   const consulta = await findConsultaById(pool, consultaId);
 
@@ -224,7 +222,7 @@ export const obtenerConsultaService = async (
   return {
     ...consulta,
     fecha_consulta: toDateISO(consulta.fecha_consulta),
-    documentos: documentos.map((doc: DocumentoConsultaRow) => ({
+    documentos: documentos.map((doc: DocumentoRow) => ({
       id: doc.documento_id,
       descripcion: doc.descripcion ?? doc.ruta_archivo,
       ruta: doc.ruta_archivo,
@@ -240,7 +238,7 @@ export const obtenerConsultaService = async (
 export const actualizarConsultaService = async (
   consultaId: number,
   body: Record<string, any>,
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<void> => {
   const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
@@ -268,7 +266,7 @@ export const actualizarConsultaService = async (
 export const eliminarConsultaService = async (
   consultaId: number,
   payload: { motivo?: string; detalle?: string },
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<void> => {
   const { motivo, detalle } = payload ?? {};
 
@@ -300,7 +298,7 @@ export const eliminarConsultaService = async (
 export const subirDocumentosConsultaService = async (
   consultaId: number,
   files: Express.Multer.File[] | undefined,
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<DocumentoSubido[]> => {
   if (!files?.length) {
     throw new DomainError("Debes adjuntar al menos un archivo", 422);
@@ -353,7 +351,7 @@ export const subirDocumentosConsultaService = async (
 export const exportarConsultaService = async (
   consultaId: number,
   secciones: string[] | undefined,
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<{ filePath: string; fileName: string }> => {
   const consulta = await findConsultaById(pool, consultaId);
   if (!consulta) {
@@ -393,7 +391,7 @@ export const programarProximaCitaService = async (
     modalidadId?: number | null;
     metodoPagoId?: number | null;
   },
-  context: ContextoUsuario
+  context: ContextoBase
 ): Promise<{ turnoId: number }> => {
   const { fecha, hora, modalidadId = null, metodoPagoId = null } = payload;
 

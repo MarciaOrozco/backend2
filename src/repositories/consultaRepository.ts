@@ -4,9 +4,9 @@ import {
   ConsultaEvolucionRow,
   ConsultaListadoRow,
   ConsultaRow,
-  DocumentoConsultaRow,
   HistorialPesoRow,
 } from "../interfaces/consulta";
+import { DocumentoRow } from "../interfaces/documento";
 
 export const findConsultasByPaciente = async (
   client: Pool | PoolConnection = pool,
@@ -117,8 +117,8 @@ export const findEvolucionByPacienteId = async (
 export const findDocumentosByConsultaId = async (
   client: Pool | PoolConnection = pool,
   consultaId: number
-): Promise<DocumentoConsultaRow[]> => {
-  const [rows] = await client.query<DocumentoConsultaRow[]>(
+): Promise<DocumentoRow[]> => {
+  const [rows] = await client.query<DocumentoRow[]>(
     `
       SELECT documento_id, descripcion, ruta_archivo, fecha
       FROM documento

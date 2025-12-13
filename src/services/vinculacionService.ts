@@ -8,7 +8,7 @@ import { findPacienteYNutricionistaByTurnoId } from "../repositories/turnoReposi
 import {
   CrearVinculacionContext,
   CrearVinculacionPayload,
-} from "../interfaces/paciente";
+} from "../interfaces/vinculo";
 
 /**
  * Caso de uso: crear vinculación manual paciente ↔ nutricionista.

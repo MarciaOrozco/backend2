@@ -83,7 +83,7 @@ export const createTurno = async (req: Request, res: Response) => {
         metodoPagoId: metodo_pago_id ?? metodoPagoId ?? null,
       },
       {
-        userRol: req.user.rol,
+        rol: req.user.rol,
         userId: req.user.usuarioId,
       }
     );
@@ -139,7 +139,7 @@ export const cancelarTurno = async (req: Request, res: Response) => {
   try {
     await cancelarTurnoService(turnoId, motivo, {
       userId: req.user.usuarioId,
-      userRol: req.user.rol,
+      rol: req.user.rol,
     });
 
     return res.json({
@@ -176,7 +176,7 @@ export const reprogramarTurno = async (req: Request, res: Response) => {
       nuevaHora,
       {
         userId: req.user.usuarioId,
-        userRol: req.user.rol,
+        rol: req.user.rol,
       }
     );
 
@@ -210,8 +210,8 @@ export const cancelarTurnoNutricionista = async (
   try {
     await cancelarTurnoService(turnoId, motivo, {
       userId: req.user.usuarioId,
-      userRol: req.user.rol,
-      userNutricionistaId: req.user.nutricionistaId,
+      rol: req.user.rol,
+      nutricionistaId: req.user.nutricionistaId,
     });
 
     return res.json({
@@ -251,8 +251,8 @@ export const reprogramarTurnoNutricionista = async (
   try {
     await reprogramarTurnoNutricionistaService(turnoId, nuevaFecha, nuevaHora, {
       userId: req.user.usuarioId,
-      userRol: req.user.rol,
-      userNutricionistaId: req.user.nutricionistaId,
+      rol: req.user.rol,
+      nutricionistaId: req.user.nutricionistaId,
     });
 
     return res.json({

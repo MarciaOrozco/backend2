@@ -12,11 +12,11 @@ import { insertConsulta } from "./consultaRepository";
 import {
   CrearPacienteManualData,
   CrearPacienteManualResult,
-  DocumentoPacienteRow,
   PacienteContactoRow,
   PacienteRegistroRow,
   PlanPacienteRow,
 } from "../interfaces/paciente";
+import { DocumentoRow } from "../interfaces/documento";
 
 export const findPacientePendiente = async (
   connection: PoolConnection,
@@ -111,8 +111,8 @@ export const getPacienteContactoById = async (
 export const getDocumentosByPaciente = async (
   client: Pool | PoolConnection,
   pacienteId: number
-): Promise<DocumentoPacienteRow[]> => {
-  const [rows] = await client.query<DocumentoPacienteRow[]>(
+): Promise<DocumentoRow[]> => {
+  const [rows] = await client.query<DocumentoRow[]>(
     `
       SELECT documento_id, descripcion, ruta_archivo, fecha
       FROM documento

@@ -26,7 +26,7 @@ import {
 import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
 import { generateInvitationToken } from "../utils/tokenUtils";
 import { enviarInvitacionRegistroPaciente } from "./notificacionService";
-import { AgregarPacienteManualContext } from "../interfaces/paciente";
+import { UserContext } from "../interfaces/context";
 
 export const getNutricionistas = async (
   filters: NutricionistaFilters
@@ -215,7 +215,7 @@ export const getPacientePerfilParaNutricionista = async (
 export const agregarPacienteManual = async (
   nutricionistaId: number,
   payload: { nombre: string; apellido: string; email: string },
-  context: AgregarPacienteManualContext
+  context: UserContext
 ) => {
   await ensureNutricionistaPropietario(context.userId, nutricionistaId);
 

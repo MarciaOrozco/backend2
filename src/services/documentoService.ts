@@ -2,10 +2,8 @@ import path from "path";
 import { DomainError } from "../interfaces/errors";
 import { insertDocumento } from "../repositories/documentoRepository";
 import { ensurePacientePropietarioByUser } from "../utils/vinculoUtils";
-import {
-  CrearDocumentosContext,
-  CrearDocumentosPayload,
-} from "../interfaces/documento";
+import { CrearDocumentosPayload } from "../interfaces/documento";
+import { UserContext } from "../interfaces/context";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -18,7 +16,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 export const crearDocumentosService = async (
   files: Express.Multer.File[] | undefined,
   payload: CrearDocumentosPayload,
-  context: CrearDocumentosContext
+  context: UserContext
 ) => {
   if (!files?.length) {
     throw new DomainError("No se recibieron archivos", 400);
@@ -38,12 +36,12 @@ export const crearDocumentosService = async (
 
   let pacienteId = payload.pacienteId;
 
-  if (context.userRol === "paciente") {
+  if (context.rol === "paciente") {
     pacienteId = await ensurePacientePropietarioByUser(
       context.userId,
       payload.pacienteId
     );
-  } else if (context.userRol !== "admin") {
+  } else if (context.rol !== "admin") {
     throw new DomainError("No autorizado", 403);
   }
 
