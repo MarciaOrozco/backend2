@@ -1,13 +1,7 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
 import type { RangoDisponibilidad } from "../interfaces/agenda";
-
-interface RangoDisponibilidadRow extends RowDataPacket {
-  dia_semana: string;
-  hora_inicio: string;
-  hora_fin: string;
-  intervalo_minutos?: number | null;
-}
+import { RangoDisponibilidadRow } from "../interfaces/disponibilidad";
 
 export const findDisponibilidadByNutricionistaAndDia = async (
   nutricionistaId: number,
@@ -27,7 +21,6 @@ export const findDisponibilidadByNutricionistaAndDia = async (
     );
     return rows;
   } catch (error: any) {
-    // Si la columna no existe aún, intentamos sin ella para compatibilidad.
     if (error?.code === "ER_BAD_FIELD_ERROR") {
       const [rows] = await client.query<RangoDisponibilidadRow[]>(
         `

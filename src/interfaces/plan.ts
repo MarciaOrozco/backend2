@@ -1,3 +1,5 @@
+import { RowDataPacket } from "mysql2/promise";
+
 export type PlanOrigin = "manual" | "ia";
 export type PlanStatus = "borrador" | "validado" | "enviado";
 
@@ -138,3 +140,69 @@ export interface UpdatePlanPayload extends Partial<PlanMetadata> {
 }
 
 export type UpsertPlanPayload = UpdatePlanPayload;
+
+export interface PlanRow extends RowDataPacket {
+  plan_id: number;
+  paciente_id: number;
+  nutricionista_id: number;
+  origen: PlanOrigin;
+  estado: PlanStatus;
+  fecha_creacion: Date | string;
+  ultima_actualizacion: Date | string | null;
+  fecha_validacion: Date | string | null;
+  titulo: string | null;
+  objetivo_principal: string | null;
+  objetivo_secundario: string | null;
+  edad: number | null;
+  sexo: string | null;
+  nivel_actividad: string | null;
+  peso_actual: number | null;
+  peso_objetivo: number | null;
+  altura: number | null;
+  tiempo_estimado: string | null;
+  condiciones_json: string | null;
+  restricciones_json: string | null;
+  preferencias_json: string | null;
+  notas: string | null;
+}
+
+export interface DayRow extends RowDataPacket {
+  dia_plan_id: number;
+  plan_id: number;
+  numero_dia: number;
+  nombre: string | null;
+  objetivo: string | null;
+  total_calorias: number | null;
+  total_proteinas: number | null;
+  total_carbohidratos: number | null;
+  total_grasas: number | null;
+  extras_json: string | null;
+  notas: string | null;
+}
+
+export interface MealRow extends RowDataPacket {
+  comida_id: number;
+  dia_plan_id: number;
+  orden: number | null;
+  tipo_comida: string | null;
+  titulo: string | null;
+  descripcion: string | null;
+  horario: string | null;
+  calorias: number | null;
+  proteinas: number | null;
+  carbohidratos: number | null;
+  grasas: number | null;
+  fibra: number | null;
+  alimentos_json: string | null;
+  observaciones: string | null;
+}
+
+export interface PlanAccessContext {
+  rol: string;
+  pacienteId?: number | null;
+  nutricionistaId?: number | null;
+}
+
+export interface CreatePlanContext extends PlanAccessContext {
+  usuarioId: number;
+}

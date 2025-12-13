@@ -1,6 +1,5 @@
 import { pool } from "../config/db";
 import { DomainError } from "../interfaces/errors";
-
 import {
   getDocumentosByPaciente,
   getPacienteContactoById,

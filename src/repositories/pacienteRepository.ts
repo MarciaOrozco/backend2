@@ -1,4 +1,4 @@
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import type { Pool, PoolConnection } from "mysql2/promise";
 import { pool } from "../config/db";
 import { findRolIdByNombre } from "./rolRepository";
 import { findEstadoRegistroIdByNombre } from "./estadoRegistroRepository";
@@ -9,14 +9,14 @@ import {
   insertRelacionPacienteProfesional,
 } from "./vinculoRepository";
 import { insertConsulta } from "./consultaRepository";
-
-interface PacienteRegistroRow extends RowDataPacket {
-  paciente_id: number;
-  usuario_id: number | null;
-  token_invitacion: string | null;
-  fecha_expiracion: Date | string | null;
-  estado_registro: string | null;
-}
+import {
+  CrearPacienteManualData,
+  CrearPacienteManualResult,
+  DocumentoPacienteRow,
+  PacienteContactoRow,
+  PacienteRegistroRow,
+  PlanPacienteRow,
+} from "../interfaces/paciente";
 
 export const findPacientePendiente = async (
   connection: PoolConnection,
@@ -86,15 +86,6 @@ export const createPacienteForUsuario = async (
   );
 };
 
-interface PacienteContactoRow extends RowDataPacket {
-  paciente_id: number;
-  nombre: string | null;
-  apellido: string | null;
-  email: string;
-  telefono: string | null;
-  ciudad: string | null;
-}
-
 export const getPacienteContactoById = async (
   pacienteId: number,
   client: Pool | PoolConnection = pool
@@ -117,13 +108,6 @@ export const getPacienteContactoById = async (
   return rows[0];
 };
 
-interface DocumentoPacienteRow extends RowDataPacket {
-  documento_id: number;
-  descripcion: string | null;
-  ruta_archivo: string;
-  fecha: Date | string | null;
-}
-
 export const getDocumentosByPaciente = async (
   client: Pool | PoolConnection,
   pacienteId: number
@@ -140,17 +124,6 @@ export const getDocumentosByPaciente = async (
 
   return rows;
 };
-
-interface PlanPacienteRow extends RowDataPacket {
-  plan_id: number;
-  fecha_creacion: Date | string;
-  ultima_actualizacion: Date | string | null;
-  fecha_validacion: Date | string | null;
-  estado: string | null;
-  origen: string | null;
-  titulo: string | null;
-  notas: string | null;
-}
 
 export const getPlanesByPaciente = async (
   client: Pool | PoolConnection,
@@ -176,20 +149,6 @@ export const getPlanesByPaciente = async (
 
   return rows;
 };
-interface CrearPacienteManualData {
-  nombre: string;
-  apellido: string;
-  email: string;
-  tokenInvitacion: string;
-  fechaExpiracion: Date;
-  nutricionistaId: number;
-}
-
-interface CrearPacienteManualResult {
-  pacienteId: number;
-  usuarioId: number;
-  consultaTemporalId: number;
-}
 
 export const crearPacienteManual = async (
   data: CrearPacienteManualData

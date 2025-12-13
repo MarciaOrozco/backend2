@@ -1,16 +1,6 @@
-import {
-  DocumentoConsultaRow,
-  HistorialPesoRow,
-} from "../../interfaces/consulta";
+import { ConsultaExportPayload } from "../../interfaces/consulta";
 import { toDateISO } from "../../utils/dateUtils";
 import { BasePdfExporter } from "./BasePdfExporter";
-
-export interface ConsultaExportPayload {
-  consulta: any;
-  documentos: DocumentoConsultaRow[];
-  historialPeso: HistorialPesoRow[];
-  secciones?: string[];
-}
 
 export class ConsultaPdfExporter extends BasePdfExporter<ConsultaExportPayload> {
   protected buildFileName(): string {

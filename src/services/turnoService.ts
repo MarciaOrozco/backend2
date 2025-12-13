@@ -2,6 +2,7 @@ import type {
   CreateTurnoPayload,
   CreateTurnoResult,
   Turno,
+  TurnoContext,
 } from "../interfaces/turno";
 import { DomainError } from "../interfaces/errors";
 import {
@@ -56,12 +57,6 @@ const notificarEventoTurno = async (
   const turno = await buildTurnoDominio(turnoId);
   await gestorEventosTurno.notify(evento, turno, payload);
 };
-
-interface TurnoContext {
-  userId: number;
-  userRol: string;
-  userNutricionistaId?: number | null;
-}
 
 export const createTurno = async (
   payload: CreateTurnoPayload,

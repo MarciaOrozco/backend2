@@ -58,3 +58,10 @@ export interface HistorialPesoRow extends RowDataPacket {
   fecha: Date | string | null;
   peso: number | null;
 }
+
+export interface ConsultaExportPayload {
+  consulta: any;
+  documentos: DocumentoConsultaRow[];
+  historialPeso: HistorialPesoRow[];
+  secciones?: string[];
+}

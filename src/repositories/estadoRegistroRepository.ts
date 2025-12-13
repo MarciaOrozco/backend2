@@ -1,8 +1,5 @@
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
-
-interface EstadoRegistroRow extends RowDataPacket {
-  estado_registro_id: number;
-}
+import type { Pool, PoolConnection } from "mysql2/promise";
+import { EstadoRegistroRow } from "../interfaces/estadoRegistro";
 
 export const findEstadoRegistroIdByNombre = async (
   client: Pool | PoolConnection,

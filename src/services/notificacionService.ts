@@ -1,12 +1,5 @@
+import { EnviarInvitacionPacienteData } from "../interfaces/emailNotificacion";
 import { createEmailService, EmailService } from "./EmailService";
-
-interface EnviarInvitacionPacienteData {
-  email: string;
-  nombre: string;
-  tokenInvitacion: string;
-  fechaExpiracion: Date;
-  pacienteId: number;
-}
 
 const FRONTEND_BASE_URL =
   process.env.FRONTEND_BASE_URL ??

@@ -2,6 +2,10 @@ import path from "path";
 import { DomainError } from "../interfaces/errors";
 import { insertDocumento } from "../repositories/documentoRepository";
 import { ensurePacientePropietarioByUser } from "../utils/vinculoUtils";
+import {
+  CrearDocumentosContext,
+  CrearDocumentosPayload,
+} from "../interfaces/documento";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -10,16 +14,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpg",
 ]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-interface CrearDocumentosPayload {
-  pacienteId?: number;
-  descripcion?: string;
-}
-
-interface CrearDocumentosContext {
-  userId: number;
-  userRol: string;
-}
 
 export const crearDocumentosService = async (
   files: Express.Multer.File[] | undefined,

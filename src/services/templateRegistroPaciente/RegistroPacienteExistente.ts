@@ -5,7 +5,6 @@ import { DomainError } from "../../interfaces/errors";
 import {
   updateUsuarioDatos,
   updateUsuarioRol,
-  UsuarioAuthRow,
 } from "../../repositories/usuarioRepository";
 import {
   activatePaciente,
@@ -13,6 +12,7 @@ import {
   findPacientePendiente,
   linkPacienteToUsuario,
 } from "../../repositories/pacienteRepository";
+import { UsuarioAuthRow } from "../../interfaces/usuario";
 
 /**
  * Implementación del Template Method para el caso:

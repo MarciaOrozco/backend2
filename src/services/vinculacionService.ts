@@ -5,19 +5,13 @@ import {
   obtenerPacienteIdPorUsuario,
 } from "../repositories/vinculoRepository";
 import { findPacienteYNutricionistaByTurnoId } from "../repositories/turnoRepository";
-
-interface CrearVinculacionPayload {
-  pacienteId?: number;
-  nutricionistaId: number;
-}
-
-interface CrearVinculacionContext {
-  usuarioId?: number; // si viene autenticado
-}
+import {
+  CrearVinculacionContext,
+  CrearVinculacionPayload,
+} from "../interfaces/paciente";
 
 /**
  * Caso de uso: crear vinculación manual paciente ↔ nutricionista.
- * Es el que usa router.post("/vinculaciones", crearVinculacion).
  */
 export const crearVinculacionManual = async (
   payload: CrearVinculacionPayload,

@@ -1,4 +1,3 @@
-import type PDFDocument from "pdfkit";
 import { BasePdfExporter } from "./BasePdfExporter";
 
 export interface PlanExportPayload {

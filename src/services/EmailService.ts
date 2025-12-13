@@ -1,13 +1,8 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { EmailMessage } from "../interfaces/emailNotificacion";
 
 dotenv.config();
-
-export interface EmailMessage {
-  to: string;
-  subject: string;
-  body: string;
-}
 
 export interface EmailService {
   sendEmail(message: EmailMessage): Promise<void>;
@@ -29,13 +24,7 @@ export class NodemailerEmailService implements EmailService {
   private transporter;
   private from: string;
 
-  constructor({
-    user,
-    pass,
-  }: {
-    user: string;
-    pass: string;
-  }) {
+  constructor({ user, pass }: { user: string; pass: string }) {
     this.from = user;
     this.transporter = nodemailer.createTransport({
       service: "gmail",

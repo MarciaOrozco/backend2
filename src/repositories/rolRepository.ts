@@ -1,8 +1,5 @@
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
-
-interface RolRow extends RowDataPacket {
-  rol_id: number;
-}
+import type { Pool, PoolConnection } from "mysql2/promise";
+import { RolRow } from "../interfaces/rol";
 
 export const findRolIdByNombre = async (
   client: Pool | PoolConnection,

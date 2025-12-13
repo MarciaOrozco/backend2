@@ -14,6 +14,8 @@ import {
   type PlanOrigin,
   type CreatePlanPayload,
   type UpsertPlanPayload,
+  CreatePlanContext,
+  PlanAccessContext,
 } from "../interfaces/plan";
 import {
   findPlanRowById,
@@ -31,16 +33,6 @@ import {
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { DomainError } from "../interfaces/errors";
 import { PlanPdfExporter } from "./export/PlanPdfExporter";
-
-interface PlanAccessContext {
-  rol: string;
-  pacienteId?: number | null;
-  nutricionistaId?: number | null;
-}
-
-interface CreatePlanContext extends PlanAccessContext {
-  usuarioId: number;
-}
 
 const parseNumber = (value: any): number | undefined => {
   if (value === null || value === undefined) return undefined;

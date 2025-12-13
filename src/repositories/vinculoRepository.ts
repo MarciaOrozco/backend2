@@ -1,11 +1,7 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
 import { ForbiddenError } from "../utils/vinculoUtils";
-
-interface RelacionPacienteProfesionalRow extends RowDataPacket {
-  paciente_id: number;
-  nutricionista_id: number;
-}
+import { RelacionPacienteProfesionalRow } from "../interfaces/vinculo";
 
 export const existsRelacionPacienteProfesional = async (
   client: Pool | PoolConnection = pool,

@@ -6,69 +6,15 @@ import type {
 } from "mysql2/promise";
 import { pool } from "../config/db";
 import type { TurnoExistente } from "../interfaces/agenda";
-import { CreateTurnoPayload } from "../interfaces/turno";
-
-interface TurnoExistenteRow extends RowDataPacket {
-  hora: string;
-}
-
-interface TurnoPacienteRow extends RowDataPacket {
-  turno_id: number;
-  fecha: Date | string;
-  hora: string | null;
-  estado_turno_id: number;
-  estado: string;
-  modalidad_id: number | null;
-  modalidad: string | null;
-  nutricionista_id: number;
-  nutricionista_nombre: string;
-  nutricionista_apellido: string;
-}
-
-interface TurnoNutricionistaRow extends RowDataPacket {
-  turno_id: number;
-  fecha: Date | string;
-  hora: string | null;
-  estado_turno_id: number;
-  estado: string;
-  modalidad_id: number | null;
-  modalidad: string | null;
-  paciente_id: number;
-  paciente_nombre: string | null;
-  paciente_apellido: string | null;
-  paciente_email: string | null;
-}
-
-interface TurnoVinculoRow extends RowDataPacket {
-  paciente_id: number;
-  nutricionista_id: number;
-}
-
-interface TurnoRow extends RowDataPacket {
-  turno_id: number;
-  paciente_id: number;
-  nutricionista_id: number;
-  fecha: Date | string;
-  hora: string | null;
-  estado_turno_id: number;
-}
-
-interface TurnoDetalleRow extends RowDataPacket {
-  turno_id: number;
-  paciente_id: number;
-  paciente_nombre: string | null;
-  paciente_apellido: string | null;
-  paciente_email: string | null;
-  nutricionista_id: number;
-  nutricionista_nombre: string | null;
-  nutricionista_apellido: string | null;
-  nutricionista_email: string | null;
-  fecha: Date | string;
-  hora: string | null;
-  estado_turno_id: number;
-  modalidad_id: number | null;
-  metodo_pago_id: number | null;
-}
+import {
+  CreateTurnoPayload,
+  TurnoDetalleRow,
+  TurnoExistenteRow,
+  TurnoNutricionistaRow,
+  TurnoPacienteRow,
+  TurnoRow,
+  TurnoVinculoRow,
+} from "../interfaces/turno";
 
 /**
  * Turnos activos (estado 1 ó 2) de un nutricionista en una fecha dada.
