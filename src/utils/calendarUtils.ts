@@ -1,6 +1,5 @@
-import { nombreCompleto } from "../core/turno/NotificadorEmailListener";
 import { CalendarData } from "../interfaces/agenda";
-import { Turno } from "../interfaces/turno";
+import { Turno, TurnoParticipante } from "../interfaces/turno";
 
 const pad = (value: number): string => String(value).padStart(2, "0");
 
@@ -60,6 +59,9 @@ const buildIcsContent = (
     .filter(Boolean)
     .join("\n");
 };
+
+const nombreCompleto = (p: TurnoParticipante): string =>
+  [p.nombre, p.apellido].filter(Boolean).join(" ").trim();
 
 export const buildCalendarDataFromTurno = (
   turno: Turno,

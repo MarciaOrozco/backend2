@@ -2,6 +2,7 @@ import type {
   CreateTurnoPayload,
   CreateTurnoResult,
   Turno,
+  TurnoRow,
 } from "../interfaces/turno";
 import { DomainError } from "../interfaces/errors";
 import {
@@ -103,7 +104,8 @@ export const cancelarTurnoService = async (
   motivo: string | undefined,
   context: UserContext
 ): Promise<void> => {
-  let propietario: string = "";
+  let propietario: "paciente" | "nutricionista";
+
   const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
@@ -152,39 +154,7 @@ export const reprogramarTurnoService = async (
 
   await ensurePacientePropietario(context.userId, turno.paciente_id);
 
-  const targetDate = new Date(nuevaFecha);
-  if (Number.isNaN(targetDate.getTime())) {
-    throw new DomainError("Fecha inválida", 400);
-  }
-
-  const diaSemana = targetDate
-    .toLocaleDateString("es-ES", { weekday: "long" })
-    .toLowerCase();
-
-  const rangos = await findDisponibilidadByNutricionistaAndDia(
-    turno.nutricionista_id,
-    diaSemana
-  );
-
-  if (!rangos.length || !horaDentroDeRangos(nuevaHora, rangos)) {
-    throw new DomainError(
-      "El profesional no tiene disponibilidad en el horario indicado",
-      400
-    );
-  }
-
-  const ocupado = await existsTurnoActivoEnHorarioExcepto(
-    turno.nutricionista_id,
-    nuevaFecha,
-    nuevaHora,
-    turnoId
-  );
-
-  if (ocupado) {
-    throw new DomainError("El horario solicitado ya está reservado", 409);
-  }
-
-  await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
+  await reprogramarHelper(turno, nuevaFecha, nuevaHora);
 
   await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO, {
     mensaje: "Turno reprogramado por el paciente",
@@ -205,14 +175,23 @@ export const reprogramarTurnoNutricionistaService = async (
     throw new DomainError("Turno no encontrado", 404);
   }
 
-  const asociado = await ensureNutricionistaPropietario(
+  await ensureNutricionistaPropietario(
     context.userId,
     context.nutricionistaId ?? turno.nutricionista_id
   );
-  if (Number(turno.nutricionista_id) !== Number(asociado)) {
-    throw new DomainError("No autorizado", 403);
-  }
 
+  await reprogramarHelper(turno, nuevaFecha, nuevaHora);
+
+  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO, {
+    mensaje: "Turno reprogramado por el profesional",
+  });
+};
+
+const reprogramarHelper = async (
+  turno: TurnoRow,
+  nuevaFecha: string,
+  nuevaHora: string
+): Promise<void> => {
   const targetDate = new Date(nuevaFecha);
   if (Number.isNaN(targetDate.getTime())) {
     throw new DomainError("Fecha inválida", 400);
@@ -238,17 +217,14 @@ export const reprogramarTurnoNutricionistaService = async (
     turno.nutricionista_id,
     nuevaFecha,
     nuevaHora,
-    turnoId
+    turno.turno_id
   );
 
   if (ocupado) {
     throw new DomainError("El horario solicitado ya está reservado", 409);
   }
 
-  await updateTurnoFechaHoraYEstado(turnoId, nuevaFecha, nuevaHora, 2);
-  await notificarEventoTurno(turnoId, EventoTurno.REPROGRAMADO, {
-    mensaje: "Turno reprogramado por el profesional",
-  });
+  await updateTurnoFechaHoraYEstado(turno.turno_id, nuevaFecha, nuevaHora, 2);
 };
 
 const horaDentroDeRangos = (
