@@ -8,18 +8,6 @@ export interface EmailService {
   sendEmail(message: EmailMessage): Promise<void>;
 }
 
-/**
- * Implementación por defecto que deja trazas en consola.
- * Sustituirla por un adaptador real (nodemailer, etc.) en infraestructura.
- */
-export class ConsoleEmailService implements EmailService {
-  async sendEmail(message: EmailMessage): Promise<void> {
-    const { to, subject, body } = message;
-    // En entornos reales reemplazar por el proveedor concreto.
-    console.info(`[Email] to=${to} subject="${subject}" body="${body}"`);
-  }
-}
-
 export class NodemailerEmailService implements EmailService {
   private transporter;
   private from: string;
@@ -50,12 +38,9 @@ export const createEmailService = (): EmailService => {
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASS;
 
-  if (user && pass) {
-    return new NodemailerEmailService({ user, pass });
+  if (!user || !pass) {
+    throw new Error("EMAIL_USER y EMAIL_PASS son requeridos para enviar emails");
   }
 
-  console.warn(
-    "EMAIL_USER o EMAIL_PASS no configurados; se usará ConsoleEmailService."
-  );
-  return new ConsoleEmailService();
+  return new NodemailerEmailService({ user, pass });
 };
