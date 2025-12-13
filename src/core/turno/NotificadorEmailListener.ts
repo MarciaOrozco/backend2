@@ -13,7 +13,6 @@ export const nombreCompleto = (p: TurnoParticipante): string =>
 export class NotificadorEmailListener implements IListenerTurno {
   constructor(private readonly emailService: EmailService) {}
 
-  // Ignora payload extra por ahora; mantiene contrato para otros listeners.
   update(
     turno: Turno,
     evento: EventoTurno,

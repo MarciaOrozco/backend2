@@ -19,34 +19,16 @@ import {
 } from "../utils/vinculoUtils";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
-
 import { pool } from "../config/db";
 import { RangoDisponibilidad } from "../interfaces/agenda";
 import { findDisponibilidadByNutricionistaAndDia } from "../repositories/disponibilidadRepository";
-import { GestorEventosTurno } from "../core/turno/GestorEventosTurno";
-import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener";
-import { LoggingTurnoListener } from "../core/turno/LoggingTurnoListener";
-
+import { configurarEventosTurno } from "../core/turno/turnoEventosBootstrap";
 import { EventoTurno, EventoTurnoPayload } from "../interfaces/turno";
-import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 import { normalizeTime, toISODateString } from "../utils/dateUtils";
 import { UserContext } from "../interfaces/context";
 
-const gestorEventosTurno = new GestorEventosTurno();
-const emailService = createEmailService();
-const notificadorEmailListener = new NotificadorEmailListener(emailService);
-const loggingTurnoListener = new LoggingTurnoListener();
-
-gestorEventosTurno.subscribe(EventoTurno.CREADO, notificadorEmailListener);
-gestorEventosTurno.subscribe(EventoTurno.CANCELADO, notificadorEmailListener);
-gestorEventosTurno.subscribe(
-  EventoTurno.REPROGRAMADO,
-  notificadorEmailListener
-);
-gestorEventosTurno.subscribe(EventoTurno.CREADO, loggingTurnoListener);
-gestorEventosTurno.subscribe(EventoTurno.CANCELADO, loggingTurnoListener);
-gestorEventosTurno.subscribe(EventoTurno.REPROGRAMADO, loggingTurnoListener);
+const gestorEventosTurno = configurarEventosTurno();
 
 const notificarEventoTurno = async (
   turnoId: number,

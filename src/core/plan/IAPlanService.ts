@@ -9,7 +9,7 @@ export async function generarPlanIA(parametros: any) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-Genera un plan alimentario semanal en JSON para un paciente en ESPAÑOL DE ARGENTINA (ingredientes habituales argentinos).
+Genera un plan alimentario semanal en JSON para un paciente en ESPAÑOL DE ARGENTINA (ingredientes habituales; evita "seta", usa "champiñón" u "hongos").
 Datos:
 - Edad: ${parametros.edad}
 - Sexo: ${parametros.sexo}
@@ -17,8 +17,12 @@ Datos:
 - Altura: ${parametros.altura} cm
 - Nivel de actividad: ${parametros.actividad}
 - Objetivo: ${parametros.objetivo}
+- Tipo de dieta: ${parametros?.restrictions?.dietType ?? "ninguna"}
+- Alergias: ${(parametros?.restrictions?.allergies ?? []).join(", ") || "ninguna"}
+- Evitar / No le gusta: ${(parametros?.restrictions?.dislikes ?? []).join(", ") || "ninguno"}
+- Restricciones adicionales: ${parametros?.restrictions?.other ?? "ninguna"}
 
-Formato OBLIGATORIO: responde solo JSON plano, sin texto extra, sin markdown.
+Formato OBLIGATORIO: responde solo JSON plano, sin texto extra, sin markdown. Respeta la dieta y evita ingredientes prohibidos.
 {
   "dias": [
     {
