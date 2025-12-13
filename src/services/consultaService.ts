@@ -2,7 +2,7 @@ import { DomainError } from "../interfaces/errors";
 import path from "path";
 import type { CreateTurnoPayload } from "../interfaces/turno";
 import { pool } from "../config/db";
-import { toDateISO } from "../utils/dateUtils";
+import { toISODateString } from "../utils/dateUtils";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { ConsultaPdfExporter } from "./export/ConsultaPdfExporter";
@@ -156,7 +156,7 @@ export const obtenerEvolucionPacienteService = async (
 
   const registros: RegistroEvolucion[] = rows
     .map((row: ConsultaEvolucionRow) => ({
-      fecha_consulta: toDateISO(row.fecha_consulta),
+      fecha_consulta: toISODateString(row.fecha_consulta),
       peso: row.peso != null ? Number(row.peso) : null,
       imc: row.imc != null ? Number(row.imc) : null,
       cintura: row.cintura != null ? Number(row.cintura) : null,
@@ -221,15 +221,15 @@ export const obtenerConsultaService = async (
 
   return {
     ...consulta,
-    fecha_consulta: toDateISO(consulta.fecha_consulta),
+    fecha_consulta: toISODateString(consulta.fecha_consulta),
     documentos: documentos.map((doc: DocumentoRow) => ({
       id: doc.documento_id,
       descripcion: doc.descripcion ?? doc.ruta_archivo,
       ruta: doc.ruta_archivo,
-      fecha: toDateISO(doc.fecha),
+      fecha: toISODateString(doc.fecha),
     })),
     historial_peso: historialPeso.map((row: HistorialPesoRow) => ({
-      fecha: toDateISO(row.fecha),
+      fecha: toISODateString(row.fecha),
       peso: row.peso != null ? Number(row.peso) : null,
     })),
   };

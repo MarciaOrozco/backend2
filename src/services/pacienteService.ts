@@ -6,7 +6,7 @@ import {
   getPlanesByPaciente,
 } from "../repositories/pacienteRepository";
 import { PacienteContacto, PlanPacienteResumen } from "../interfaces/paciente";
-import { toDateString } from "../utils/dateUtils";
+import { toISODateString } from "../utils/dateUtils";
 import { DocumentoPaciente } from "../interfaces/documento";
 
 export const obtenerContactoPaciente = async (
@@ -37,7 +37,7 @@ export const listarDocumentosPaciente = async (
     id: documento.documento_id,
     descripcion: documento.descripcion ?? documento.ruta_archivo,
     ruta: documento.ruta_archivo,
-    fecha: toDateString(documento.fecha),
+    fecha: toISODateString(documento.fecha),
   }));
 };
 
@@ -48,9 +48,9 @@ export const listarPlanesPaciente = async (
 
   return planes.map((plan) => ({
     id: plan.plan_id,
-    fechaCreacion: toDateString(plan.fecha_creacion),
-    ultimaActualizacion: toDateString(plan.ultima_actualizacion),
-    fechaValidacion: toDateString(plan.fecha_validacion),
+    fechaCreacion: toISODateString(plan.fecha_creacion),
+    ultimaActualizacion: toISODateString(plan.ultima_actualizacion),
+    fechaValidacion: toISODateString(plan.fecha_validacion),
     estado: plan.estado,
     origen: plan.origen,
     titulo: plan.titulo,

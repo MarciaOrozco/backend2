@@ -31,7 +31,7 @@ import { LoggingTurnoListener } from "../core/turno/LoggingTurnoListener";
 import { EventoTurno, EventoTurnoPayload } from "../interfaces/turno";
 import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
-import { formatDate, formatHora } from "../utils/dateUtils";
+import { normalizeTime, toISODateString } from "../utils/dateUtils";
 import { UserContext } from "../interfaces/context";
 
 const gestorEventosTurno = new GestorEventosTurno();
@@ -291,8 +291,8 @@ const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
 
   return {
     id: detalle.turno_id,
-    fecha: formatDate(detalle.fecha) ?? "",
-    hora: formatHora(detalle.hora),
+    fecha: toISODateString(detalle.fecha) ?? "",
+    hora: normalizeTime(detalle.hora),
     paciente: {
       id: detalle.paciente_id,
       nombre: detalle.paciente_nombre,
@@ -313,7 +313,7 @@ const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
 
 const mapTurnoPaciente = (row: any) => ({
   id: row.turno_id,
-  fecha: formatDate(row.fecha),
+  fecha: toISODateString(row.fecha),
   hora: row.hora ? row.hora.toString().slice(0, 5) : null,
   estado: row.estado,
   estadoId: row.estado_turno_id,

@@ -33,7 +33,7 @@ import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { DomainError } from "../interfaces/errors";
 import { PlanPdfExporter } from "./export/PlanPdfExporter";
 import { parseJson, parseNumber } from "../utils/stringUtils";
-import { parseDate } from "../utils/dateUtils";
+import { toISODateString } from "../utils/dateUtils";
 
 const serializeMetadata = (
   metadata: PlanMetadata,
@@ -173,9 +173,11 @@ const planRowToRecord = async (row: any): Promise<PlanRecord> => {
     origin: row.origen,
     title: row.titulo ?? undefined,
     notes: row.notas ?? undefined,
-    createdAt: parseDate(row.fecha_creacion),
-    updatedAt: parseDate(row.ultima_actualizacion),
-    validatedAt: row.fecha_validacion ? parseDate(row.fecha_validacion) : null,
+    createdAt: toISODateString(row.fecha_creacion),
+    updatedAt: toISODateString(row.ultima_actualizacion),
+    validatedAt: row.fecha_validacion
+      ? toISODateString(row.fecha_validacion)
+      : null,
     patientInfo: {
       age: parseNumber(row.edad),
       sex: row.sexo ?? undefined,

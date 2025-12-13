@@ -15,7 +15,7 @@ import {
   findPacientesVinculados,
 } from "../repositories/nutricionistaRepository";
 import { findTurnosActivosByNutricionista } from "../repositories/turnoRepository";
-import { toDateISO } from "../utils/dateUtils";
+import { toISODateString } from "../utils/dateUtils";
 import { ensureNutricionistaPropietario } from "../utils/vinculoUtils";
 import { DomainError } from "../interfaces/errors";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
@@ -132,8 +132,8 @@ export const getPacientesVinculados = async (
       telefono: row.telefono,
       estadoRegistro: estado,
       estadoRegistroLabel: estadoLabel,
-      fechaInvitacion: toDateISO(row.fecha_invitacion),
-      fechaExpiracion: toDateISO(row.fecha_expiracion),
+      fechaInvitacion: toISODateString(row.fecha_invitacion),
+      fechaExpiracion: toISODateString(row.fecha_expiracion),
       esInvitado: estado === "pendiente",
     };
   });
@@ -158,7 +158,7 @@ export const getTurnosNutricionista = async (
   const turnos = rows
     .map((row) => ({
       id: row.turno_id,
-      fecha: toDateISO(row.fecha),
+      fecha: toISODateString(row.fecha),
       hora: row.hora ? row.hora.toString().slice(0, 5) : null,
       estadoId: row.estado_turno_id,
       estado: row.estado,

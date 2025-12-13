@@ -16,9 +16,9 @@ import { ensureNutricionistaPropietario } from "../utils/vinculoUtils";
 import { pool } from "../config/db";
 import {
   isValidTime,
-  normalizarHora,
-  toMinutes,
-  toTime,
+  normalizeTime,
+  timeToMinutes,
+  minutesToTime,
 } from "../utils/dateUtils";
 
 const DEFAULT_INTERVAL = 30;
@@ -60,7 +60,7 @@ const generarSlots = (
   intervaloOverride?: number | null
 ): HorarioDisponible[] => {
   const ocupados = new Set(
-    turnosOcupados.map((turno) => normalizarHora(turno.hora))
+    turnosOcupados.map((turno) => normalizeTime(turno.hora))
   );
 
   const slots: HorarioDisponible[] = [];
@@ -71,11 +71,11 @@ const generarSlots = (
       rango.intervalo_minutos ?? null
     );
 
-    let cursor = toMinutes(rango.hora_inicio);
-    const fin = toMinutes(rango.hora_fin);
+    let cursor = timeToMinutes(rango.hora_inicio);
+    const fin = timeToMinutes(rango.hora_fin);
 
     while (cursor < fin) {
-      const hora = toTime(cursor);
+      const hora = minutesToTime(cursor);
       if (!ocupados.has(hora)) {
         slots.push({
           hora,

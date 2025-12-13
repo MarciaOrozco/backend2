@@ -1,5 +1,5 @@
 import { ConsultaExportPayload } from "../../interfaces/consulta";
-import { toDateISO } from "../../utils/dateUtils";
+import { toISODateString } from "../../utils/dateUtils";
 import { BasePdfExporter } from "./BasePdfExporter";
 
 export class ConsultaPdfExporter extends BasePdfExporter<ConsultaExportPayload> {
@@ -22,7 +22,9 @@ export class ConsultaPdfExporter extends BasePdfExporter<ConsultaExportPayload> 
 
     if (incluir("informacion")) {
       doc.fontSize(14).text("Información", { underline: true });
-      doc.fontSize(12).text(`Fecha: ${toDateISO(consulta.fecha_consulta)}`);
+      doc
+        .fontSize(12)
+        .text(`Fecha: ${toISODateString(consulta.fecha_consulta)}`);
       doc.fontSize(12).text(`Estado: ${consulta.estado}`);
       doc.moveDown();
     }
@@ -60,9 +62,9 @@ export class ConsultaPdfExporter extends BasePdfExporter<ConsultaExportPayload> 
           doc
             .fontSize(12)
             .text(
-              `• ${docRow.descripcion ?? docRow.ruta_archivo} (${toDateISO(
-                docRow.fecha
-              )})`
+              `• ${
+                docRow.descripcion ?? docRow.ruta_archivo
+              } (${toISODateString(docRow.fecha)})`
             );
         });
       }
@@ -77,7 +79,7 @@ export class ConsultaPdfExporter extends BasePdfExporter<ConsultaExportPayload> 
         historialPeso.forEach((row) => {
           doc
             .fontSize(12)
-            .text(`${toDateISO(row.fecha)} · Peso: ${row.peso ?? "-"}`);
+            .text(`${toISODateString(row.fecha)} · Peso: ${row.peso ?? "-"}`);
         });
       }
       doc.moveDown();

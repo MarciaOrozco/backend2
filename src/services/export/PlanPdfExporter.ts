@@ -4,7 +4,7 @@ export interface PlanExportPayload {
   plan: any;
 }
 
-const formatDate = (value: string | undefined | null): string => {
+const toISODateString = (value: string | undefined | null): string => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
@@ -31,8 +31,8 @@ export class PlanPdfExporter extends BasePdfExporter<PlanExportPayload> {
           plan.origin?.toUpperCase?.() ?? "MANUAL"
         }`
       );
-    doc.text(`Fecha de creacion: ${formatDate(plan.createdAt)}`);
-    doc.text(`Ultima actualizacion: ${formatDate(plan.updatedAt)}`);
+    doc.text(`Fecha de creacion: ${toISODateString(plan.createdAt)}`);
+    doc.text(`Ultima actualizacion: ${toISODateString(plan.updatedAt)}`);
     doc.moveDown();
 
     this.renderPaciente(doc, plan);
