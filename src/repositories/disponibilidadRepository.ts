@@ -1,6 +1,6 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
-import type { RangoDisponibilidad } from "../types/agenda";
+import type { RangoDisponibilidad } from "../interfaces/agenda";
 
 interface RangoDisponibilidadRow extends RowDataPacket {
   dia_semana: string;

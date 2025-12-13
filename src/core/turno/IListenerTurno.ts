@@ -1,5 +1,5 @@
-import { Turno } from "../../types/turno";
-import type { EventoTurno, EventoTurnoPayload } from "../../types/turno";
+import { Turno } from "../../interfaces/turno";
+import type { EventoTurno, EventoTurnoPayload } from "../../interfaces/turno";
 
 export interface IListenerTurno {
   update(

@@ -4,7 +4,7 @@ import {
   obtenerNutricionistaIdPorUsuario,
   obtenerPacienteIdPorUsuario,
 } from "../repositories/vinculoRepository";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import { ForbiddenError } from "./errorsUtils";
 
 /**
@@ -81,4 +81,22 @@ export const ensureNutricionistaPropietario = async (
 
   return asociado;
 };
+
 export { ForbiddenError };
+
+export const ensurePacientePropietarioByUser = async (
+  usuarioId: number,
+  pacienteId?: number
+): Promise<number> => {
+  const asociado = await obtenerPacienteIdPorUsuario(usuarioId);
+
+  if (!asociado) {
+    throw new DomainError("El usuario no está vinculado a un paciente", 403);
+  }
+
+  if (pacienteId != null && Number(pacienteId) !== Number(asociado)) {
+    throw new DomainError("No tienes permisos sobre este paciente", 403);
+  }
+
+  return asociado;
+};

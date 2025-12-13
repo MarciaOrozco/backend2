@@ -1,4 +1,4 @@
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import {
   existsRelacionPacienteProfesional,
   insertRelacionPacienteProfesional,

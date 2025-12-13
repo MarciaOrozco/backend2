@@ -1,28 +1,30 @@
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import path from "path";
-import type { CreateTurnoPayload } from "../types/turno";
-import {
-  ConsultaEvolucionRow,
-  ConsultaRow,
-  findConsultasByPaciente,
-  findConsultaById,
-  deleteConsultaById,
-  findDocumentosByConsultaId,
-  findEvolucionByPacienteId,
-  findHistorialPeso,
-  insertConsulta,
-  insertDocumentoConsulta,
-  updateConsultaById,
-  type ConsultaListadoRow,
-  type DocumentoConsultaRow,
-  type HistorialPesoRow,
-} from "../repositories/consultaRepository";
+import type { CreateTurnoPayload } from "../interfaces/turno";
 import { pool } from "../config/db";
 import { toDateISO } from "../utils/dateUtils";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { ConsultaPdfExporter } from "./export/ConsultaPdfExporter";
 import { createTurno } from "../repositories/turnoRepository";
+import {
+  ConsultaEvolucionRow,
+  ConsultaListadoRow,
+  ConsultaRow,
+  DocumentoConsultaRow,
+  HistorialPesoRow,
+} from "../interfaces/consulta";
+import {
+  deleteConsultaById,
+  findConsultaById,
+  findConsultasByPaciente,
+  findDocumentosByConsultaId,
+  findEvolucionByPacienteId,
+  findHistorialPeso,
+  insertConsulta,
+  insertDocumentoConsulta,
+  updateConsultaById,
+} from "../repositories/consultaRepository";
 
 const ALLOWED_ESTADOS = new Set(["borrador", "guardada", "cerrada"]);
 const ALLOWED_VISIBILIDAD = new Set(["paciente", "profesional"]);

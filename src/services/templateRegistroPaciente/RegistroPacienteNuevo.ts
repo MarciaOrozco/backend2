@@ -1,7 +1,7 @@
 import type { PoolConnection } from "mysql2/promise";
-import type { RegisterPacienteTemplateData } from "../../types/registerPacienteTemplateData";
+import type { RegisterPacienteTemplateData } from "../../interfaces/registerPacienteTemplateData";
 import { RegistroPacienteTemplate } from "./RegistroPacienteTemplate";
-import { DomainError } from "../../types/errors";
+import { DomainError } from "../../interfaces/errors";
 import { createPacienteForUsuario } from "../../repositories/pacienteRepository";
 import { createUsuario } from "../../repositories/usuarioRepository";
 

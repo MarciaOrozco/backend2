@@ -10,7 +10,7 @@ import type {
   ObraSocialRow,
   PacienteVinculadoRow,
   ResenaRow,
-} from "../types/nutricionista";
+} from "../interfaces/nutricionista";
 import type { Pool, PoolConnection } from "mysql2/promise";
 
 export const findNutricionistas = async (

@@ -1,7 +1,7 @@
 import path from "path";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import { insertDocumento } from "../repositories/documentoRepository";
-import { ensurePacientePropietarioByUser } from "../utils/ownershipService";
+import { ensurePacientePropietarioByUser } from "../utils/vinculoUtils";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",

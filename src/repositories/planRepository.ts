@@ -11,7 +11,7 @@ import type {
   PlanMetadata,
   PlanOrigin,
   PlanStatus,
-} from "../types/plan";
+} from "../interfaces/plan";
 
 export interface PlanRow extends RowDataPacket {
   plan_id: number;

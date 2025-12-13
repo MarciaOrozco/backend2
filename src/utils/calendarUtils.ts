@@ -1,4 +1,4 @@
-import { Turno, nombreCompleto } from "../types/turno";
+import { Turno, nombreCompleto } from "../interfaces/turno";
 
 export interface CalendarData {
   calendarLink: string | null;

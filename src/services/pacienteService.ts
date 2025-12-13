@@ -1,5 +1,5 @@
 import { pool } from "../config/db";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 
 import {
   getDocumentosByPaciente,
@@ -10,7 +10,7 @@ import {
   DocumentoPaciente,
   PacienteContacto,
   PlanPacienteResumen,
-} from "../types/paciente";
+} from "../interfaces/paciente";
 
 const toDateString = (value: Date | string | null): string | null => {
   if (!value) {

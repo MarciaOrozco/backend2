@@ -1,9 +1,9 @@
 import type { EmailService } from "../../services/EmailService";
-import { Turno } from "../../types/turno";
-import { EventoTurno } from "../../types/turno";
-import type { EventoTurnoPayload } from "../../types/turno";
+import { Turno } from "../../interfaces/turno";
+import { EventoTurno } from "../../interfaces/turno";
+import type { EventoTurnoPayload } from "../../interfaces/turno";
 import type { IListenerTurno } from "./IListenerTurno";
-import { nombreCompleto } from "../../types/turno";
+import { nombreCompleto } from "../../interfaces/turno";
 
 export class NotificadorEmailListener implements IListenerTurno {
   constructor(private readonly emailService: EmailService) {}

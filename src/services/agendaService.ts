@@ -4,8 +4,8 @@ import type {
   HorarioDisponible,
   RangoDisponibilidad,
   TurnoExistente,
-} from "../types/agenda";
-import { DomainError } from "../types/errors";
+} from "../interfaces/agenda";
+import { DomainError } from "../interfaces/errors";
 import {
   deleteDisponibilidadByNutricionista,
   findDisponibilidadByNutricionistaAndDia,
@@ -38,7 +38,10 @@ const toMinutes = (time: string) => {
 const toTime = (minutesTotal: number) => {
   const hours = Math.floor(minutesTotal / 60);
   const minutes = minutesTotal % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0"
+  )}`;
 };
 
 const normalizarHora = (value: string) => value.slice(0, 5);
@@ -51,7 +54,7 @@ const parseInterval = (value?: string | null) => {
 
 const resolverIntervalo = (
   override?: number | null,
-  rangoIntervalo?: number | null,
+  rangoIntervalo?: number | null
 ) => {
   const intervalo =
     override ??
@@ -64,10 +67,10 @@ const resolverIntervalo = (
 const generarSlots = (
   disponibilidad: RangoDisponibilidad[],
   turnosOcupados: TurnoExistente[],
-  intervaloOverride?: number | null,
+  intervaloOverride?: number | null
 ): HorarioDisponible[] => {
   const ocupados = new Set(
-    turnosOcupados.map((turno) => normalizarHora(turno.hora)),
+    turnosOcupados.map((turno) => normalizarHora(turno.hora))
   );
 
   const slots: HorarioDisponible[] = [];
@@ -75,7 +78,7 @@ const generarSlots = (
   for (const rango of disponibilidad) {
     const intervalo = resolverIntervalo(
       intervaloOverride,
-      rango.intervalo_minutos ?? null,
+      rango.intervalo_minutos ?? null
     );
 
     let cursor = toMinutes(rango.hora_inicio);
@@ -125,7 +128,7 @@ export const getTurnosDisponibles = async (
   const slots = generarSlots(
     disponibilidad,
     turnosExistentes,
-    intervaloDesdeQuery,
+    intervaloDesdeQuery
   );
 
   const result: GetTurnosDisponiblesResult = {

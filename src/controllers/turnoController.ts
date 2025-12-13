@@ -1,12 +1,11 @@
 import type { Request, Response } from "express";
 import { getTurnosDisponibles as getTurnosDisponiblesService } from "../services/agendaService";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import {
   cancelarTurnoService,
   createTurno as createTurnoService,
   obtenerTurnosPaciente,
   reprogramarTurnoService,
-  cancelarTurnoNutricionistaService,
   reprogramarTurnoNutricionistaService,
 } from "../services/turnoService";
 import { verificarAccesoPaciente } from "../utils/vinculoUtils";
@@ -209,7 +208,7 @@ export const cancelarTurnoNutricionista = async (
   }
 
   try {
-    await cancelarTurnoNutricionistaService(turnoId, motivo, {
+    await cancelarTurnoService(turnoId, motivo, {
       userId: req.user.usuarioId,
       userRol: req.user.rol,
       userNutricionistaId: req.user.nutricionistaId,
@@ -250,16 +249,11 @@ export const reprogramarTurnoNutricionista = async (
   }
 
   try {
-    await reprogramarTurnoNutricionistaService(
-      turnoId,
-      nuevaFecha,
-      nuevaHora,
-      {
-        userId: req.user.usuarioId,
-        userRol: req.user.rol,
-        userNutricionistaId: req.user.nutricionistaId,
-      }
-    );
+    await reprogramarTurnoNutricionistaService(turnoId, nuevaFecha, nuevaHora, {
+      userId: req.user.usuarioId,
+      userRol: req.user.rol,
+      userNutricionistaId: req.user.nutricionistaId,
+    });
 
     return res.json({
       success: true,

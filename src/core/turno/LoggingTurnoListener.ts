@@ -1,5 +1,5 @@
 import { insertTurnoLogEvento } from "../../repositories/turnoRepository";
-import { EventoTurno, EventoTurnoPayload, Turno } from "../../types/turno";
+import { EventoTurno, EventoTurnoPayload, Turno } from "../../interfaces/turno";
 import type { IListenerTurno } from "./IListenerTurno";
 
 /**

@@ -2,7 +2,7 @@ import type {
   NutricionistaFilters,
   NutricionistaCardDTO,
   NutricionistaDetalleDTO,
-} from "../types/nutricionista";
+} from "../interfaces/nutricionista";
 import {
   findNutricionistaBaseById,
   findEspecialidadesByNutricionista,
@@ -17,7 +17,7 @@ import {
 import { findTurnosActivosByNutricionista } from "../repositories/turnoRepository";
 import { toDateISO } from "../utils/dateUtils";
 import { ensureNutricionistaPropietario } from "../utils/vinculoUtils";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
 import {
   crearPacienteManual,
@@ -26,7 +26,7 @@ import {
 import { parseDbCsv, validateAndNormalizeEmail } from "../utils/stringUtils";
 import { generateInvitationToken } from "../utils/tokenUtils";
 import { enviarInvitacionRegistroPaciente } from "./notificacionService";
-import { AgregarPacienteManualContext } from "../types/paciente";
+import { AgregarPacienteManualContext } from "../interfaces/paciente";
 
 export const getNutricionistas = async (
   filters: NutricionistaFilters

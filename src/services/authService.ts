@@ -1,18 +1,18 @@
 import type { PoolConnection } from "mysql2/promise";
 import { pool } from "../config/db";
 
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import { comparePassword, hashPassword } from "../utils/passwordUtils";
 import { validateAndNormalizeEmail, normalizeText } from "../utils/stringUtils";
 import { RegistroPacienteExistente } from "./templateRegistroPaciente/RegistroPacienteExistente";
 import { RegistroPacienteNuevo } from "./templateRegistroPaciente/RegistroPacienteNuevo";
-import { RegisterPacienteTemplateData } from "../types/registerPacienteTemplateData";
+import { RegisterPacienteTemplateData } from "../interfaces/registerPacienteTemplateData";
 import {
   AuthResponse,
   LoginPayload,
   RegisterPacientePayload,
   SesionInfo,
-} from "../types/auth";
+} from "../interfaces/auth";
 import { findRolIdByNombre } from "../repositories/rolRepository";
 import { findEstadoRegistroIdByNombre } from "../repositories/estadoRegistroRepository";
 import {
@@ -92,8 +92,6 @@ export const registerPaciente = async (
 
     const usuario = await findUsuarioByEmail(connection, email);
 
-    //  elegimos la implementación concreta,
-    // pero el flujo general está definido en el Template Method (ejecutar).
     const template = usuario
       ? new RegistroPacienteExistente(
           connection,

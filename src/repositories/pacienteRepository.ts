@@ -3,7 +3,7 @@ import { pool } from "../config/db";
 import { findRolIdByNombre } from "./rolRepository";
 import { findEstadoRegistroIdByNombre } from "./estadoRegistroRepository";
 import { findUsuarioByEmail } from "./usuarioRepository";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import {
   existsRelacionPacienteProfesional,
   insertRelacionPacienteProfesional,

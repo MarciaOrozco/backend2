@@ -1,7 +1,7 @@
-import type {
+import {
   DocumentoConsultaRow,
   HistorialPesoRow,
-} from "../../repositories/consultaRepository";
+} from "../../interfaces/consulta";
 import { toDateISO } from "../../utils/dateUtils";
 import { BasePdfExporter } from "./BasePdfExporter";
 

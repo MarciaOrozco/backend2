@@ -5,8 +5,8 @@ import type {
   RowDataPacket,
 } from "mysql2/promise";
 import { pool } from "../config/db";
-import type { TurnoExistente } from "../types/agenda";
-import { CreateTurnoPayload } from "../types/turno";
+import type { TurnoExistente } from "../interfaces/agenda";
+import { CreateTurnoPayload } from "../interfaces/turno";
 
 interface TurnoExistenteRow extends RowDataPacket {
   hora: string;

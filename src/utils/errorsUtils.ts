@@ -1,4 +1,4 @@
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import type { Request, Response } from "express";
 
 export class ForbiddenError extends Error {

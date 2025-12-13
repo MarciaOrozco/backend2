@@ -2,8 +2,8 @@ import type {
   CreateTurnoPayload,
   CreateTurnoResult,
   Turno,
-} from "../types/turno";
-import { DomainError } from "../types/errors";
+} from "../interfaces/turno";
+import { DomainError } from "../interfaces/errors";
 import {
   createTurno as createTurnoRepository,
   existsTurnoActivoEnHorarioExcepto,
@@ -16,31 +16,22 @@ import {
 import {
   ensureNutricionistaPropietario,
   ensurePacientePropietario,
+  ensurePacientePropietarioByUser,
 } from "../utils/vinculoUtils";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
-import { ensurePacientePropietarioByUser } from "../utils/ownershipService";
+
 import { pool } from "../config/db";
-import { RangoDisponibilidad } from "../types/agenda";
+import { RangoDisponibilidad } from "../interfaces/agenda";
 import { findDisponibilidadByNutricionistaAndDia } from "../repositories/disponibilidadRepository";
 import { GestorEventosTurno } from "../core/turno/GestorEventosTurno";
 import { NotificadorEmailListener } from "../core/turno/NotificadorEmailListener";
 import { LoggingTurnoListener } from "../core/turno/LoggingTurnoListener";
 
-import { EventoTurno, EventoTurnoPayload } from "../types/turno";
+import { EventoTurno, EventoTurnoPayload } from "../interfaces/turno";
 import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 import { formatDate, formatHora } from "../utils/dateUtils";
-
-interface CreateTurnoContext {
-  userRol: string;
-  userId: number;
-}
-interface TurnoActionNutriContext {
-  userId: number;
-  userRol: string;
-  userNutricionistaId?: number | null;
-}
 
 const gestorEventosTurno = new GestorEventosTurno();
 const emailService = createEmailService();
@@ -66,9 +57,15 @@ const notificarEventoTurno = async (
   await gestorEventosTurno.notify(evento, turno, payload);
 };
 
+interface TurnoContext {
+  userId: number;
+  userRol: string;
+  userNutricionistaId?: number | null;
+}
+
 export const createTurno = async (
   payload: CreateTurnoPayload,
-  context: CreateTurnoContext
+  context: TurnoContext
 ): Promise<CreateTurnoResult> => {
   const { userRol, userId } = context;
   let pacienteIdValue = payload.pacienteId;
@@ -101,50 +98,6 @@ export const createTurno = async (
   return { turnoId, ...calendarData };
 };
 
-const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
-  const detalle = await findTurnoDetalleById(pool, turnoId);
-
-  if (!detalle) {
-    throw new DomainError("Turno no encontrado", 404);
-  }
-
-  return {
-    id: detalle.turno_id,
-    fecha: formatDate(detalle.fecha) ?? "",
-    hora: formatHora(detalle.hora),
-    paciente: {
-      id: detalle.paciente_id,
-      nombre: detalle.paciente_nombre,
-      apellido: detalle.paciente_apellido,
-      email: detalle.paciente_email ?? "",
-    },
-    nutricionista: {
-      id: detalle.nutricionista_id,
-      nombre: detalle.nutricionista_nombre,
-      apellido: detalle.nutricionista_apellido,
-      email: detalle.nutricionista_email ?? "",
-    },
-    modalidadId: detalle.modalidad_id,
-    metodoPagoId: detalle.metodo_pago_id ?? null,
-    estadoTurnoId: detalle.estado_turno_id ?? null,
-  };
-};
-
-const mapTurnoPaciente = (row: any) => ({
-  id: row.turno_id,
-  fecha: formatDate(row.fecha),
-  hora: row.hora ? row.hora.toString().slice(0, 5) : null,
-  estado: row.estado,
-  estadoId: row.estado_turno_id,
-  modalidadId: row.modalidad_id,
-  modalidad: row.modalidad,
-  nutricionista: {
-    id: row.nutricionista_id,
-    nombre: row.nutricionista_nombre,
-    apellido: row.nutricionista_apellido,
-  },
-});
-
 export const obtenerTurnosPaciente = async (pacienteId: number) => {
   const rows = await findTurnosByPacienteId(undefined, pacienteId);
 
@@ -172,75 +125,45 @@ export const obtenerTurnosPaciente = async (pacienteId: number) => {
 export const cancelarTurnoService = async (
   turnoId: number,
   motivo: string | undefined,
-  context: CreateTurnoContext
+  context: TurnoContext
 ): Promise<void> => {
+  let propietario: string = "";
   const turno = await findTurnoById(turnoId);
   if (!turno) {
     throw new DomainError("Turno no encontrado", 404);
-  }
-
-  await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
-
-  if (turno.estado_turno_id === 3) {
-    throw new DomainError("El turno ya se encuentra cancelado", 400);
-  }
-
-  await updateTurnoEstado(turnoId, 3);
-
-  const mensaje = `Turno cancelado por el paciente. Motivo: ${
-    motivo ?? "No indicado"
-  }`;
-
-  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO, { mensaje });
-};
-
-export const cancelarTurnoNutricionistaService = async (
-  turnoId: number,
-  motivo: string | undefined,
-  context: TurnoActionNutriContext
-): Promise<void> => {
-  const turno = await findTurnoById(turnoId);
-  if (!turno) {
-    throw new DomainError("Turno no encontrado", 404);
-  }
-
-  const asociado = await ensureNutricionistaPropietario(
-    context.userId,
-    context.userNutricionistaId ?? turno.nutricionista_id
-  );
-  if (Number(turno.nutricionista_id) !== Number(asociado)) {
-    throw new DomainError("No autorizado", 403);
   }
 
   if (turno.estado_turno_id === 3) {
     throw new DomainError("El turno ya se encuentra cancelado", 400);
   }
 
-  await updateTurnoEstado(turnoId, 3);
+  if (context.userRol === "paciente") {
+    await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
+    propietario = "paciente";
+  } else if (context.userRol === "nutricionista") {
+    await ensureNutricionistaPropietario(
+      context.userId,
+      context.userNutricionistaId ?? turno.nutricionista_id
+    );
+    propietario = "nutricionista";
+  } else {
+    throw new DomainError("No autorizado para cancelar este turno", 403);
+  }
 
-  const mensaje = `Turno cancelado por el profesional. Motivo: ${
+  const mensaje = `Turno cancelado por el ${propietario}. Motivo: ${
     motivo ?? "Sin detalle"
   }`;
-  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO, { mensaje });
-};
 
-const horaDentroDeRangos = (
-  hora: string,
-  rangos: RangoDisponibilidad[]
-): boolean => {
-  return rangos.some((r) => {
-    const inicio = String(r.hora_inicio).slice(0, 5); // "HH:MM"
-    const fin = String(r.hora_fin).slice(0, 5);
-    const h = hora.slice(0, 5);
-    return inicio <= h && h <= fin;
-  });
+  await updateTurnoEstado(turnoId, 3);
+
+  await notificarEventoTurno(turnoId, EventoTurno.CANCELADO, { mensaje });
 };
 
 export const reprogramarTurnoService = async (
   turnoId: number,
   nuevaFecha: string,
   nuevaHora: string,
-  context: CreateTurnoContext
+  context: TurnoContext
 ): Promise<{ calendarLink: string | null; icsContent: string | null }> => {
   if (context.userRol !== "paciente") {
     throw new DomainError("No autorizado", 403);
@@ -299,7 +222,7 @@ export const reprogramarTurnoNutricionistaService = async (
   turnoId: number,
   nuevaFecha: string,
   nuevaHora: string,
-  context: TurnoActionNutriContext
+  context: TurnoContext
 ): Promise<void> => {
   const turno = await findTurnoById(turnoId);
   if (!turno) {
@@ -351,3 +274,59 @@ export const reprogramarTurnoNutricionistaService = async (
     mensaje: "Turno reprogramado por el profesional",
   });
 };
+
+const horaDentroDeRangos = (
+  hora: string,
+  rangos: RangoDisponibilidad[]
+): boolean => {
+  return rangos.some((r) => {
+    const inicio = String(r.hora_inicio).slice(0, 5); // "HH:MM"
+    const fin = String(r.hora_fin).slice(0, 5);
+    const h = hora.slice(0, 5);
+    return inicio <= h && h <= fin;
+  });
+};
+
+const buildTurnoDominio = async (turnoId: number): Promise<Turno> => {
+  const detalle = await findTurnoDetalleById(pool, turnoId);
+
+  if (!detalle) {
+    throw new DomainError("Turno no encontrado", 404);
+  }
+
+  return {
+    id: detalle.turno_id,
+    fecha: formatDate(detalle.fecha) ?? "",
+    hora: formatHora(detalle.hora),
+    paciente: {
+      id: detalle.paciente_id,
+      nombre: detalle.paciente_nombre,
+      apellido: detalle.paciente_apellido,
+      email: detalle.paciente_email ?? "",
+    },
+    nutricionista: {
+      id: detalle.nutricionista_id,
+      nombre: detalle.nutricionista_nombre,
+      apellido: detalle.nutricionista_apellido,
+      email: detalle.nutricionista_email ?? "",
+    },
+    modalidadId: detalle.modalidad_id,
+    metodoPagoId: detalle.metodo_pago_id ?? null,
+    estadoTurnoId: detalle.estado_turno_id ?? null,
+  };
+};
+
+const mapTurnoPaciente = (row: any) => ({
+  id: row.turno_id,
+  fecha: formatDate(row.fecha),
+  hora: row.hora ? row.hora.toString().slice(0, 5) : null,
+  estado: row.estado,
+  estadoId: row.estado_turno_id,
+  modalidadId: row.modalidad_id,
+  modalidad: row.modalidad,
+  nutricionista: {
+    id: row.nutricionista_id,
+    nombre: row.nutricionista_nombre,
+    apellido: row.nutricionista_apellido,
+  },
+});

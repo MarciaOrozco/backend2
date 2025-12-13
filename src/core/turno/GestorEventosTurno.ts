@@ -1,6 +1,6 @@
-import type { EventoTurno, EventoTurnoPayload } from "../../types/turno";
+import type { EventoTurno, EventoTurnoPayload } from "../../interfaces/turno";
 import type { IListenerTurno } from "./IListenerTurno";
-import type { Turno } from "../../types/turno";
+import type { Turno } from "../../interfaces/turno";
 
 export class GestorEventosTurno {
   private readonly listeners: Map<EventoTurno, IListenerTurno[]> = new Map();

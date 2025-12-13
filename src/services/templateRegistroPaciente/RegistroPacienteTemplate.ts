@@ -1,5 +1,5 @@
 import type { PoolConnection } from "mysql2/promise";
-import type { RegisterPacienteTemplateData } from "../../types/registerPacienteTemplateData";
+import type { RegisterPacienteTemplateData } from "../../interfaces/registerPacienteTemplateData";
 
 /**
  * Clase base del patrón Template Method para el registro de pacientes.

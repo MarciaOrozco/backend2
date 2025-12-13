@@ -7,7 +7,7 @@ import {
   getPacientePerfilParaNutricionista as getPacientePerfilParaNutricionistaService,
   agregarPacienteManual as agregarPacienteManualService,
 } from "../services/nutricionistaService";
-import type { NutricionistaFilters } from "../types/nutricionista";
+import type { NutricionistaFilters } from "../interfaces/nutricionista";
 import { handleControllerError } from "../utils/errorsUtils";
 import { updateDisponibilidadNutricionista } from "../services/agendaService";
 import { parseCsv } from "../utils/stringUtils";

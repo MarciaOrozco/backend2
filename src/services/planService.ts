@@ -14,7 +14,7 @@ import {
   type PlanOrigin,
   type CreatePlanPayload,
   type UpsertPlanPayload,
-} from "../types/plan";
+} from "../interfaces/plan";
 import {
   findPlanRowById,
   findDayRowsByPlanId,
@@ -29,7 +29,7 @@ import {
   deletePlanRowById,
 } from "../repositories/planRepository";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
-import { DomainError } from "../types/errors";
+import { DomainError } from "../interfaces/errors";
 import { PlanPdfExporter } from "./export/PlanPdfExporter";
 
 interface PlanAccessContext {
