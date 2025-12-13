@@ -1,4 +1,3 @@
-import { pool } from "../config/db";
 import {
   assertVinculoActivo,
   obtenerNutricionistaIdPorUsuario,

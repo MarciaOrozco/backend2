@@ -3,6 +3,7 @@ import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import { pool } from "../config/db";
 import {
   DEFAULT_DAY_NAMES,
+  DEFAULT_MEAL_TYPES,
   PLAN_STATUS,
   type PlanDay,
   type PlanDayTotals,
@@ -34,6 +35,7 @@ import { DomainError } from "../interfaces/errors";
 import { PlanPdfExporter } from "./export/PlanPdfExporter";
 import { parseJson, parseNumber } from "../utils/stringUtils";
 import { toISODateString } from "../utils/dateUtils";
+import { generarPlanIA } from "../core/plan/IAPlanService";
 
 const serializeMetadata = (
   metadata: PlanMetadata,
@@ -76,6 +78,61 @@ const serializeMetadata = (
   assign("notas", metadata.notes);
 
   return result;
+};
+
+const mapIaResponseToDays = (response: any): PlanDay[] => {
+  if (!response) return [];
+
+  const dias = Array.isArray(response)
+    ? response
+    : Array.isArray(response.dias)
+      ? response.dias
+      : [];
+
+  if (!dias.length) return [];
+
+  return dias.map((dia: any, diaIndex: number) => {
+    const comidas = Array.isArray(dia.comidas) ? dia.comidas : [];
+
+    const meals: PlanMeal[] = comidas.map((comida: any, idx: number) => ({
+      order: idx + 1,
+      type:
+        comida.nombre ??
+        comida.tipo ??
+        DEFAULT_MEAL_TYPES[idx % DEFAULT_MEAL_TYPES.length],
+      title:
+        comida.titulo ??
+        comida.nombre ??
+        comida.tipo ??
+        `Comida ${idx + 1}`,
+      description: comida.descripcion ?? "",
+      calories: parseNumber(comida.calorias),
+      proteins: parseNumber(comida.proteinas),
+      carbs: parseNumber(comida.carbohidratos ?? comida.carbs),
+      fats: parseNumber(comida.grasas ?? comida.fats),
+      fiber: parseNumber(comida.fibra),
+      notes: comida.observaciones ?? comida.notas ?? undefined,
+    }));
+
+    const totals =
+      dia.totales && typeof dia.totales === "object"
+        ? {
+            calories: parseNumber(dia.totales.calorias),
+            proteins: parseNumber(dia.totales.proteinas),
+            carbs: parseNumber(dia.totales.carbohidratos),
+            fats: parseNumber(dia.totales.grasas),
+          }
+        : undefined;
+
+    return {
+      dayNumber: diaIndex + 1,
+      name: dia.dia ?? DEFAULT_DAY_NAMES[diaIndex] ?? `Dia ${diaIndex + 1}`,
+      goal: dia.objetivo ?? undefined,
+      notes: dia.notas ?? undefined,
+      totals,
+      meals,
+    };
+  });
 };
 
 const extractKnownTotals = (
@@ -391,11 +448,32 @@ export const createAiPlan = async (
   await assertVinculoActivo(pacienteId, nutricionistaId);
 
   const metadata: PlanMetadata = (body?.metadata ?? {}) as PlanMetadata;
-  const days: PlanDay[] = Array.isArray(body?.days) ? body.days : [];
+  const bodyDays: PlanDay[] = Array.isArray(body?.days) ? body.days : [];
+
+  let days: PlanDay[] = bodyDays;
+  if (!days.length) {
+    const iaParams = {
+      edad: metadata.patientInfo?.age,
+      sexo: metadata.patientInfo?.sex,
+      peso: metadata.patientInfo?.weight,
+      altura: metadata.patientInfo?.height,
+      actividad: metadata.patientInfo?.activityLevel,
+      objetivo:
+        metadata.objectives?.primary ?? metadata.objectives?.secondary ?? null,
+      medicalConditions: metadata.medicalConditions,
+      restrictions: metadata.restrictions,
+      preferences: metadata.preferences,
+    };
+
+    const iaResponse = await generarPlanIA(iaParams);
+    const iaDays = mapIaResponseToDays(iaResponse);
+    days = iaDays.length ? iaDays : buildAiDraftMeals(metadata);
+  }
+
   const payload: CreatePlanPayload = {
     patientId: pacienteId,
     nutritionistId: Number(nutricionistaId),
-    days: days.length ? days : buildAiDraftMeals(metadata),
+    days,
     ...metadata,
   };
 
