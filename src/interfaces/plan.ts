@@ -139,8 +139,6 @@ export interface UpdatePlanPayload extends Partial<PlanMetadata> {
   origin?: PlanOrigin;
 }
 
-export type UpsertPlanPayload = UpdatePlanPayload;
-
 export interface PlanRow extends RowDataPacket {
   plan_id: number;
   paciente_id: number;

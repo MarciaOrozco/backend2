@@ -1,9 +1,14 @@
 import type { EmailService } from "../../services/EmailService";
 import { Turno } from "../../interfaces/turno";
 import { EventoTurno } from "../../interfaces/turno";
-import type { EventoTurnoPayload } from "../../interfaces/turno";
+import type {
+  EventoTurnoPayload,
+  TurnoParticipante,
+} from "../../interfaces/turno";
 import type { IListenerTurno } from "./IListenerTurno";
-import { nombreCompleto } from "../../interfaces/turno";
+
+export const nombreCompleto = (p: TurnoParticipante): string =>
+  [p.nombre, p.apellido].filter(Boolean).join(" ").trim();
 
 export class NotificadorEmailListener implements IListenerTurno {
   constructor(private readonly emailService: EmailService) {}

@@ -28,3 +28,8 @@ export interface GetTurnosDisponiblesResult {
   slots: HorarioDisponible[];
   message?: string;
 }
+
+export interface CalendarData {
+  calendarLink: string | null;
+  icsContent: string | null;
+}

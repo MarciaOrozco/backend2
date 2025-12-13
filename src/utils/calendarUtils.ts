@@ -1,9 +1,6 @@
-import { Turno, nombreCompleto } from "../interfaces/turno";
-
-export interface CalendarData {
-  calendarLink: string | null;
-  icsContent: string | null;
-}
+import { nombreCompleto } from "../core/turno/NotificadorEmailListener";
+import { CalendarData } from "../interfaces/agenda";
+import { Turno } from "../interfaces/turno";
 
 const pad = (value: number): string => String(value).padStart(2, "0");
 

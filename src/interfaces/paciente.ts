@@ -9,6 +9,15 @@ export interface PacienteContacto {
   ciudad: string | null;
 }
 
+export interface PacienteContactoRow extends RowDataPacket {
+  paciente_id: number;
+  nombre: string | null;
+  apellido: string | null;
+  email: string;
+  telefono: string | null;
+  ciudad: string | null;
+}
+
 export interface DocumentoPaciente {
   id: number;
   descripcion: string | null;
@@ -39,15 +48,6 @@ export interface PacienteRegistroRow extends RowDataPacket {
   token_invitacion: string | null;
   fecha_expiracion: Date | string | null;
   estado_registro: string | null;
-}
-
-export interface PacienteContactoRow extends RowDataPacket {
-  paciente_id: number;
-  nombre: string | null;
-  apellido: string | null;
-  email: string;
-  telefono: string | null;
-  ciudad: string | null;
 }
 
 export interface DocumentoPacienteRow extends RowDataPacket {

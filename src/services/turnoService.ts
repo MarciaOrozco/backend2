@@ -2,7 +2,6 @@ import type {
   CreateTurnoPayload,
   CreateTurnoResult,
   Turno,
-  TurnoContext,
 } from "../interfaces/turno";
 import { DomainError } from "../interfaces/errors";
 import {
@@ -33,6 +32,7 @@ import { EventoTurno, EventoTurnoPayload } from "../interfaces/turno";
 import { createEmailService } from "./EmailService";
 import { buildCalendarDataFromTurno } from "../utils/calendarUtils";
 import { formatDate, formatHora } from "../utils/dateUtils";
+import { TurnoContext } from "../interfaces/context";
 
 const gestorEventosTurno = new GestorEventosTurno();
 const emailService = createEmailService();

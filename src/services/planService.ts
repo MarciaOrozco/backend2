@@ -1,6 +1,5 @@
 import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
-import fs from "fs";
-import path from "path";
+
 import { pool } from "../config/db";
 import {
   DEFAULT_DAY_NAMES,
@@ -13,9 +12,9 @@ import {
   type PlanStatus,
   type PlanOrigin,
   type CreatePlanPayload,
-  type UpsertPlanPayload,
   CreatePlanContext,
   PlanAccessContext,
+  UpdatePlanPayload,
 } from "../interfaces/plan";
 import {
   findPlanRowById,
@@ -454,7 +453,7 @@ export const updatePlan = async (
     throw new DomainError("Solo el nutricionista puede editar el plan", 403);
   }
 
-  const updates: UpsertPlanPayload = {
+  const updates: UpdatePlanPayload = {
     metadata: body?.metadata,
     days: Array.isArray(body?.days) ? body.days : undefined,
     status: body?.status,
