@@ -13,34 +13,35 @@ import { ForbiddenError } from "./errorsUtils";
  *  - un nutricionista vinculado
  *  - un admin
  */
-export const verificarAccesoPaciente = async (req: any, pacienteId: number) => {
-  if (!req.user) throw new ForbiddenError("Usuario no autenticado");
+export const verificarAccesoPaciente = async (
+  req: { user?: { usuarioId: number; rol: string } },
+  pacienteId: number
+): Promise<void> => {
+  if (!req.user) {
+    throw new ForbiddenError("Usuario no autenticado");
+  }
 
   const { usuarioId, rol } = req.user;
 
+  if (rol === "admin") {
+    return;
+  }
+
   if (rol === "paciente") {
-    const asociado = await obtenerPacienteIdPorUsuario(usuarioId);
-    if (!asociado || Number(asociado) !== Number(pacienteId)) {
-      throw new ForbiddenError("No autorizado para acceder a este paciente");
-    }
+    await ensurePacientePropietario(usuarioId, pacienteId);
     return;
   }
 
   if (rol === "nutricionista") {
-    const [nutriRows]: any = await pool.query(
-      `SELECT nutricionista_id FROM nutricionista WHERE usuario_id = ?`,
-      [usuarioId]
-    );
-    const nutricionistaId = nutriRows?.[0]?.nutricionista_id;
-    if (!nutricionistaId)
+    const nutricionistaId = await obtenerNutricionistaIdPorUsuario(usuarioId);
+
+    if (!nutricionistaId) {
       throw new ForbiddenError("Nutricionista no encontrado");
+    }
 
     await assertVinculoActivo(pacienteId, nutricionistaId);
     return;
   }
-
-  // 🛡️ Admin
-  if (rol === "admin") return;
 
   throw new ForbiddenError("Rol no autorizado");
 };
@@ -77,25 +78,6 @@ export const ensureNutricionistaPropietario = async (
 
   if (nutricionistaId != null && Number(nutricionistaId) !== Number(asociado)) {
     throw new DomainError("No tienes permisos sobre este recurso", 403);
-  }
-
-  return asociado;
-};
-
-export { ForbiddenError };
-
-export const ensurePacientePropietarioByUser = async (
-  usuarioId: number,
-  pacienteId?: number
-): Promise<number> => {
-  const asociado = await obtenerPacienteIdPorUsuario(usuarioId);
-
-  if (!asociado) {
-    throw new DomainError("El usuario no está vinculado a un paciente", 403);
-  }
-
-  if (pacienteId != null && Number(pacienteId) !== Number(asociado)) {
-    throw new DomainError("No tienes permisos sobre este paciente", 403);
   }
 
   return asociado;

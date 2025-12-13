@@ -1,7 +1,7 @@
 import path from "path";
 import { DomainError } from "../interfaces/errors";
 import { insertDocumento } from "../repositories/documentoRepository";
-import { ensurePacientePropietarioByUser } from "../utils/vinculoUtils";
+import { ensurePacientePropietario } from "../utils/vinculoUtils";
 import { CrearDocumentosPayload } from "../interfaces/documento";
 import { UserContext } from "../interfaces/context";
 
@@ -37,7 +37,7 @@ export const crearDocumentosService = async (
   let pacienteId = payload.pacienteId;
 
   if (context.rol === "paciente") {
-    pacienteId = await ensurePacientePropietarioByUser(
+    pacienteId = await ensurePacientePropietario(
       context.userId,
       payload.pacienteId
     );

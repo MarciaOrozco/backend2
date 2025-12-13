@@ -1,7 +1,7 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "../config/db";
-import { ForbiddenError } from "../utils/vinculoUtils";
 import { RelacionPacienteProfesionalRow } from "../interfaces/vinculo";
+import { ForbiddenError } from "../utils/errorsUtils";
 
 export const existsRelacionPacienteProfesional = async (
   client: Pool | PoolConnection = pool,

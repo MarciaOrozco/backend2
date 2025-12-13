@@ -16,7 +16,6 @@ import {
 import {
   ensureNutricionistaPropietario,
   ensurePacientePropietario,
-  ensurePacientePropietarioByUser,
 } from "../utils/vinculoUtils";
 import { vincularPacienteProfesional } from "./vinculacionService";
 import { assertVinculoActivo } from "../repositories/vinculoRepository";
@@ -133,7 +132,7 @@ export const cancelarTurnoService = async (
   }
 
   if (context.rol === "paciente") {
-    await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
+    await ensurePacientePropietario(context.userId, turno.paciente_id);
     propietario = "paciente";
   } else if (context.rol === "nutricionista") {
     await ensureNutricionistaPropietario(
@@ -169,7 +168,7 @@ export const reprogramarTurnoService = async (
     throw new DomainError("Turno no encontrado", 404);
   }
 
-  await ensurePacientePropietarioByUser(context.userId, turno.paciente_id);
+  await ensurePacientePropietario(context.userId, turno.paciente_id);
 
   const targetDate = new Date(nuevaFecha);
   if (Number.isNaN(targetDate.getTime())) {
